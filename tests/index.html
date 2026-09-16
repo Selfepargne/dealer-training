@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Poker engine tests</title>
+  <style>
+    body { background: #0d0d0e; color: #e4ddcd; font: 14px/1.6 system-ui, sans-serif; padding: 32px; }
+    h1 { font-weight: 500; }
+    #summary { color: #c2a27a; }
+    li { list-style: none; }
+    .ok { color: #93a98a; }
+    .fail { color: #c47f6f; }
+  </style>
+</head>
+<body>
+  <h1>Poker engine tests</h1>
+  <p id="summary">Running… (a few seconds)</p>
+  <ul id="results"></ul>
+  <script>window.DT = {};</script>
+  <script src="../js/modules/holdem/engine.js"></script>
+  <script>setTimeout(() => { const s = document.createElement('script'); s.src = 'poker.test.js'; document.body.appendChild(s); }, 50);</script>
+</body>
+</html>

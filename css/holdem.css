@@ -1,0 +1,229 @@
+/* ==========================================================================
+   Texas Hold'em table — 2 to 6 players
+   Black rail, very dark forest-green felt, one thin gold line. Cards first.
+   ========================================================================== */
+
+.holdem {
+  --card-board: 72px;
+  --card-seat: 64px;
+  --felt-light: #14291f;
+  --felt-dark: #0a1611;
+  --rail-line: rgba(194, 162, 122, 0.32);
+
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas:
+    ".    top    ."
+    "tl   felt   tr"
+    "bl   felt   br"
+    ".    bottom .";
+  align-items: center;
+  column-gap: var(--s-4);
+  row-gap: var(--s-2);
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+/* The table surface sits behind the two middle rows */
+.holdem::before {
+  content: "";
+  grid-column: 1 / -1;
+  grid-row: 2 / 4;
+  align-self: stretch;
+  z-index: -1;
+  margin: calc(var(--s-2) * -1) 0;
+  border-radius: 999px;
+  border: 1px solid #000;
+  background: radial-gradient(ellipse at 50% 45%, var(--felt-light) 0%, var(--felt-dark) 78%);
+  box-shadow:
+    inset 0 0 0 9px #070807,          /* rail */
+    inset 0 0 0 10px var(--rail-line), /* thin gold line */
+    inset 0 0 60px 20px rgba(0, 0, 0, 0.45),
+    0 24px 60px -30px rgba(0, 0, 0, 0.9);
+}
+
+.holdem .pcard { --w: var(--card-seat); width: var(--w); }
+.holdem .card-row { gap: calc(var(--w) * 0.11); flex-wrap: nowrap; }
+
+/* Smaller tables are narrower: no stretched, empty felt */
+.holdem.table--2,
+.holdem.table--solo { max-width: 720px; --card-seat: 72px; }
+.holdem.table--3 { max-width: 900px; --card-seat: 68px; }
+
+/* ---- Board: flop · turn · river ---------------------------------------------------- */
+
+.felt {
+  grid-area: felt;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px; /* keeps the table proportions when few seats sit on the felt */
+  padding: var(--s-6) var(--s-5);
+}
+.board { display: flex; align-items: flex-end; }
+.board .pcard { --w: var(--card-board); }
+.street { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.street + .street { margin-left: 14px; padding-left: 14px; border-left: 1px solid rgba(194, 162, 122, 0.16); }
+.street__label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(237, 230, 214, 0.42);
+}
+
+/* ---- Seats ---------------------------------------------------------------------------- */
+
+.seat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: var(--s-2) var(--s-3) 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  transition: border-color var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease);
+}
+.seat__head { display: flex; align-items: center; gap: var(--s-2); min-height: 18px; }
+.seat__label {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: rgba(237, 230, 214, 0.78);
+  white-space: nowrap;
+}
+.seat__status {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-hi);
+  white-space: nowrap;
+}
+.seat__status:empty { display: none; }
+.seat__hand { min-height: 1.35em; font-size: var(--fs-small); line-height: 1.35; color: var(--text-2); text-align: center; }
+
+.seat[data-pos="top"] { grid-area: top; justify-self: center; }
+.seat[data-pos="bottom"] { grid-area: bottom; justify-self: center; }
+.seat[data-pos="top-left"] { grid-area: tl; justify-self: end; }
+.seat[data-pos="bottom-left"] { grid-area: bl; justify-self: end; }
+.seat[data-pos="top-right"] { grid-area: tr; justify-self: start; }
+.seat[data-pos="bottom-right"] { grid-area: br; justify-self: start; }
+/* A single seat per side (3–4 players) sits in the middle of its side: more air around the board */
+.seat[data-pos="left"] { grid-column: 1; grid-row: 2 / 4; justify-self: center; }
+.seat[data-pos="right"] { grid-column: 3; grid-row: 2 / 4; justify-self: center; }
+
+/* After the answer: the winner is obvious, the rest steps back */
+.holdem.is-revealed .seat.is-winner {
+  border-color: var(--accent-line);
+  background: rgba(10, 12, 10, 0.72);
+}
+.holdem.is-revealed .seat.is-winner .seat__label { color: var(--ivory); }
+.holdem.is-revealed .seat.is-winner .seat__hand { color: var(--accent-hi); }
+.holdem.is-revealed .seat.is-loser .seat__label { color: var(--text-3); }
+.holdem.is-revealed .pcard.is-dim { opacity: 0.32; }
+
+/* ---- Cards come in quietly ------------------------------------------------------------ */
+
+@keyframes deal {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.pcard.is-dealt { animation: deal 200ms var(--ease-out) backwards; animation-delay: var(--deal-delay, 0ms); }
+
+/* ---- Answers under the table ------------------------------------------------------------ */
+
+.exercise--holdem .answers { max-width: 980px; margin: 0 auto; width: 100%; }
+.exercise--holdem .answers--3 { max-width: 720px; }
+.exercise--holdem .answers--4 { max-width: 820px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.exercise--holdem .answers--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.exercise--holdem .answers--6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.exercise--holdem .answers--7 { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.exercise--holdem .answer[data-id="split"] { color: var(--text); }
+.exercise--holdem:has(.table--2) .exercise__bottom,
+.exercise--holdem:has(.table--solo) .exercise__bottom { max-width: 720px; }
+.exercise--holdem:has(.table--3) .exercise__bottom { max-width: 900px; }
+
+/* ---- Large screens: slightly larger cards, the table still never stretches -------------- */
+
+@media (min-width: 1600px) {
+  .holdem { --card-board: 80px; --card-seat: 70px; max-width: 1060px; }
+  .holdem.table--2, .holdem.table--solo { --card-seat: 80px; max-width: 780px; }
+  .exercise--holdem .answers { max-width: 1060px; }
+}
+
+/* ---- Large tables on laptops: a little more compact ------------------------------------ */
+
+@media (max-width: 1279px) {
+  .holdem { --card-board: 66px; --card-seat: 58px; }
+  .holdem.table--2, .holdem.table--solo { --card-seat: 66px; }
+}
+
+/* ---- Tablet & phone: board on top, seats in a clean grid (readability first) ------------ */
+
+@media (max-width: 900px) {
+  .holdem,
+  .holdem.table--2,
+  .holdem.table--3,
+  .holdem.table--solo {
+    /* phones: as large as the width allows; tablets: capped so nothing looks oversized */
+    --card-board: min(calc((100vw - 104px) / 5), 80px);
+    --card-seat: min(calc((100vw - 64px) / 4.6), 72px);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-areas: none;
+    column-gap: var(--s-2);
+    row-gap: var(--s-2);
+    max-width: 620px;
+  }
+  .holdem .seat { grid-column: span 3; }
+  /* Three, five or six players: three per row */
+  .holdem.table--3 .seat, .holdem.table--5 .seat, .holdem.table--6 .seat { grid-column: span 2; }
+  .holdem.table--3, .holdem.table--5, .holdem.table--6 { --card-seat: min(calc((100vw - 76px) / 6.5), 66px); }
+  /* Five players: the last two seats are centred under the first three */
+  .holdem.table--5 .seat:nth-of-type(5) { grid-column: 2 / span 2; }
+  .holdem.table--solo .seat { grid-column: 2 / span 4; }
+
+  .holdem::before { display: none; }
+  .felt {
+    grid-area: auto;
+    grid-column: 1 / -1;
+    min-height: 0;
+    padding: var(--s-4) var(--s-2) var(--s-4);
+    border-radius: 28px;
+    background: radial-gradient(ellipse at 50% 40%, var(--felt-light) 0%, var(--felt-dark) 85%);
+    box-shadow: inset 0 0 0 6px #070807, inset 0 0 0 7px var(--rail-line), inset 0 0 40px rgba(0, 0, 0, 0.45);
+  }
+  .street + .street { margin-left: 6px; padding-left: 6px; }
+  .street__label { font-size: 0.5625rem; letter-spacing: 0.18em; }
+
+  .seat[data-pos] {
+    grid-row: auto; /* columns come from the span rules above */
+    justify-self: stretch;
+    padding: 6px 4px 2px;
+    background: var(--surface);
+    border-color: var(--line);
+  }
+  .seat__hand { font-size: 0.6875rem; }
+  .seat__head { flex-wrap: wrap; justify-content: center; row-gap: 0; }
+  .seat__label { font-size: 0.625rem; letter-spacing: 0.1em; }
+  .seat__status { font-size: 0.5625rem; }
+
+  .exercise--holdem .exercise__bottom,
+  .exercise--holdem:has(.table--2) .exercise__bottom,
+  .exercise--holdem:has(.table--3) .exercise__bottom { max-width: 620px; } /* same width as the table */
+
+  .exercise--holdem .answers,
+  .exercise--holdem .answers--4,
+  .exercise--holdem .answers--5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .exercise--holdem .answers--6,
+  .exercise--holdem .answers--7 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* "Split" takes the full last row when it would sit alone */
+  .exercise--holdem .answers--3 .answer:last-child,
+  .exercise--holdem .answers--5 .answer:last-child { grid-column: 1 / -1; }
+  .exercise--holdem .answers--7 .answer:last-child { grid-column: 1 / -1; }
+}

@@ -1,0 +1,173 @@
+/* ==========================================================================
+   Progression: rank badge, rank panel, conditions, timeline, module levels,
+   achievements
+   ========================================================================== */
+
+/* ---- Small text helpers ---------------------------------------------------- */
+
+.ivory { color: var(--ivory); font-weight: 500; }
+.small { font-size: var(--fs-small); }
+.focus__name { display: block; }
+
+.skill.is-soon .skill__name,
+.skill.is-soon .skill__meta { color: var(--text-3); }
+.tile.is-soon .tile__art > :last-child { opacity: 0.55; }
+
+/* ---- Rank badge & achievement seal ----------------------------------------- */
+
+.rank-badge { flex: none; }
+.rank-badge text {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 500;
+  fill: currentColor;
+  font-variant-numeric: lining-nums;
+}
+.rank-badge--earned { color: var(--accent-lo); }
+.rank-badge--current { color: var(--accent); }
+.rank-badge--locked { color: var(--text-3); opacity: 0.6; }
+
+.seal { flex: none; color: var(--text-3); opacity: 0.5; }
+.seal.is-earned { color: var(--accent); opacity: 1; }
+
+/* ---- Rank panel -------------------------------------------------------------- */
+
+.rank-panel {
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(194, 162, 122, 0.07), transparent 60%),
+    var(--surface);
+}
+.rank-panel__head { display: flex; align-items: center; gap: var(--s-5); }
+.rank-panel__name { font-family: var(--font-display); font-size: 2rem; line-height: 1.05; color: var(--ivory); }
+.rank-panel__quote { font-family: var(--font-display); font-style: italic; font-size: 1.125rem; color: var(--text-2); }
+.rank-panel__pct { font-size: 1.75rem; }
+
+/* ---- Condition checklist ----------------------------------------------------- */
+
+.reqs { display: flex; flex-direction: column; }
+.req {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.req:first-child { border-top: 0; }
+.req__mark {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--line-3);
+  border-radius: 50%;
+}
+.req__mark svg { width: 12px; height: 12px; stroke-width: 2.2; }
+.req.is-met { color: var(--text); }
+.req.is-met .req__mark { border-color: var(--accent); background: var(--accent); color: #17130e; }
+.req__current { color: var(--text-3); }
+.req.is-met .req__current { color: var(--accent-hi); }
+
+/* ---- Module tier steps (Beginner → Expert) --------------------------------------- */
+
+.tier-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-2); }
+.tier-step { display: flex; flex-direction: column; gap: var(--s-2); }
+.tier-step__bar { height: 3px; border-radius: 3px; background: var(--line-2); }
+.tier-step__name { font-size: var(--fs-micro); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); }
+.tier-step.is-done .tier-step__bar { background: var(--accent-lo); }
+.tier-step.is-done .tier-step__name { color: var(--text-2); }
+.tier-step.is-current .tier-step__bar { background: var(--accent); }
+.tier-step.is-current .tier-step__name { color: var(--ivory); }
+
+/* ---- Rank timeline ------------------------------------------------------------ */
+
+.timeline { position: relative; display: flex; flex-direction: column; }
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 21.5px;
+  top: 22px;
+  bottom: 22px;
+  width: 1px;
+  background: var(--line-2);
+}
+.timeline__item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--s-4);
+  padding: var(--s-3) 0;
+}
+.timeline__item .rank-badge { background: var(--surface); border-radius: 50%; }
+.timeline__body { display: flex; flex-direction: column; gap: 2px; padding-top: 4px; }
+.timeline__name { font-family: var(--font-display); font-size: 1.3125rem; line-height: 1.2; color: var(--text); }
+.timeline__text { font-size: var(--fs-small); color: var(--text-3); }
+.timeline__date { font-size: var(--fs-micro); color: var(--text-3); letter-spacing: 0.04em; }
+
+.timeline__item.is-earned .timeline__name { color: var(--text-2); }
+.timeline__item.is-current {
+  margin: var(--s-2) calc(var(--s-4) * -1);
+  padding: var(--s-4);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius);
+  background: #1d1a16;
+}
+.timeline__item.is-current .rank-badge { background: #1d1a16; }
+.timeline__item.is-current .timeline__name { color: var(--ivory); font-size: 1.625rem; }
+.timeline__item.is-current .timeline__text { color: var(--text-2); font-family: var(--font-display); font-style: italic; font-size: 1rem; }
+.timeline__item.is-locked .timeline__name { color: var(--text-3); }
+
+/* ---- Level by module ------------------------------------------------------------ */
+
+.module-levels { display: flex; flex-direction: column; }
+.module-level {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 110px;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-6);
+  border-top: 1px solid var(--line);
+}
+.module-level__name { color: var(--ivory); font-weight: 500; }
+.module-level__name:hover { color: var(--accent-hi); }
+.module-level__pips { display: flex; gap: 4px; }
+.module-level__pips span { width: 18px; height: 3px; border-radius: 3px; background: var(--line-2); }
+.module-level__pips span.is-on { background: var(--accent); }
+.module-level__tier { font-size: var(--fs-small); color: var(--text-2); text-align: right; }
+.module-level.is-soon .module-level__name,
+.module-level.is-soon .module-level__tier { color: var(--text-3); }
+
+@media (max-width: 767px) {
+  .module-level { padding: var(--s-4) var(--s-5); grid-template-columns: minmax(0, 1fr) auto; }
+  .module-level__pips { display: none; }
+}
+
+/* ---- Achievements ------------------------------------------------------------------ */
+
+.achievements { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.achievement {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-4) var(--s-6);
+  border-bottom: 1px solid var(--line);
+}
+.achievement:nth-child(odd) { border-right: 1px solid var(--line); }
+.achievement__name { font-size: var(--fs-small); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
+.achievement__text { font-size: var(--fs-small); color: var(--text-3); }
+.achievement.is-earned .achievement__name { color: var(--ivory); }
+.achievement.is-earned .achievement__text { color: var(--text-2); }
+
+@media (max-width: 767px) {
+  .achievements { grid-template-columns: 1fr; }
+  .achievement { padding: var(--s-4) var(--s-5); }
+  .achievement:nth-child(odd) { border-right: 0; }
+}
+
+/* ---- Challenges page ----------------------------------------------------------------- */
+
+.challenge__heading { font-size: clamp(2rem, 1.6rem + 1.6vw, 2.75rem); }
+.daily__art--plain { margin: 0; height: auto; min-height: 180px; border: 1px solid var(--line); border-radius: var(--radius); }

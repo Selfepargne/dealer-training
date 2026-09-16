@@ -1,0 +1,294 @@
+/* ==========================================================================
+   Dealer Training — design tokens, base, layout
+   ========================================================================== */
+
+:root {
+  /* Surfaces — deep anthracite, warm undertone */
+  --bg: #0d0d0e;
+  --bg-sunken: #0a0a0b;
+  --surface: #151516;
+  --surface-2: #1b1b1c;
+  --surface-3: #232324;
+
+  /* Lines */
+  --line: rgba(237, 230, 214, 0.07);
+  --line-2: rgba(237, 230, 214, 0.12);
+  --line-3: rgba(237, 230, 214, 0.2);
+
+  /* Text — warm ivory to warm grey */
+  --ivory: #ede6d6;
+  --text: #e4ddcd;
+  --text-2: #a29d93;
+  --text-3: #6d6a64;
+
+  /* Accent — champagne bronze */
+  --accent: #c2a27a;
+  --accent-hi: #d6bc97;
+  --accent-lo: #8f7656;
+  --accent-wash: rgba(194, 162, 122, 0.1);
+  --accent-line: rgba(194, 162, 122, 0.32);
+
+  /* Signals — muted, never loud */
+  --positive: #93a98a;
+  --positive-wash: rgba(147, 169, 138, 0.12);
+  --negative: #c47f6f;
+  --negative-wash: rgba(196, 127, 111, 0.12);
+
+  /* Table felt, for later modules */
+  --felt: #13201b;
+
+  /* Type */
+  --font-display: "Cormorant Garamond", "Cormorant", Georgia, "Times New Roman", serif;
+  --font-ui: "DM Sans", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --fs-micro: 0.6875rem;   /* 11 */
+  --fs-small: 0.8125rem;   /* 13 */
+  --fs-body: 0.9375rem;    /* 15 */
+  --fs-lead: 1.0625rem;    /* 17 */
+  --fs-h3: 1.375rem;       /* 22 */
+  --fs-h2: 1.875rem;       /* 30 */
+  --fs-h1: clamp(2.25rem, 1.6rem + 2.6vw, 3.75rem);
+  --fs-figure: clamp(2.25rem, 1.9rem + 1.2vw, 3rem);
+
+  --tracking-caps: 0.16em;
+
+  /* Space (4px base) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+
+  --shadow-1: 0 1px 0 rgba(255, 255, 255, 0.02) inset, 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-1: 120ms;
+  --dur-2: 220ms;
+  --dur-3: 480ms;
+
+  --sidebar-w: 264px;
+  --rail-w: 76px;
+  --tabbar-h: 64px;
+  --content-max: 1240px;
+
+  color-scheme: dark;
+}
+
+/* --------------------------------------------------------------------------
+   Reset & base
+   -------------------------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  font-optical-sizing: auto;
+  font-variant-numeric: lining-nums; /* "Player 1" never reads as "Player I" in the display font */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, p, ul, ol, dl, dd, figure { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+img, svg { display: block; max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; padding: 0; }
+a { color: inherit; text-decoration: none; }
+
+::selection { background: var(--accent-line); color: var(--ivory); }
+
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+
+.skip-link {
+  position: fixed;
+  top: var(--s-3); left: var(--s-3);
+  z-index: 100;
+  padding: var(--s-2) var(--s-4);
+  background: var(--ivory);
+  color: var(--bg);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  transform: translateY(-200%);
+  transition: transform var(--dur-2) var(--ease);
+}
+.skip-link:focus { transform: none; }
+
+.noscript { padding: var(--s-7); text-align: center; color: var(--text-2); }
+
+/* --------------------------------------------------------------------------
+   Typography primitives
+   -------------------------------------------------------------------------- */
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.02;
+  color: var(--ivory);
+}
+
+.figure {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-variant-numeric: lining-nums tabular-nums;
+  line-height: 1;
+  color: var(--ivory);
+  letter-spacing: -0.01em;
+}
+
+.eyebrow {
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.eyebrow--accent { color: var(--accent); }
+
+.muted { color: var(--text-2); }
+.faint { color: var(--text-3); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* --------------------------------------------------------------------------
+   Shell layout
+   -------------------------------------------------------------------------- */
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  padding: var(--s-6) var(--s-4) var(--s-5);
+  background: var(--bg-sunken);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.sidebar::-webkit-scrollbar { display: none; }
+
+.main {
+  min-width: 0;
+  padding: var(--s-7) clamp(var(--s-5), 4vw, var(--s-8)) var(--s-9);
+}
+
+.view {
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+
+/* Tablet — icon rail */
+@media (max-width: 1179px) {
+  .shell { grid-template-columns: var(--rail-w) minmax(0, 1fr); }
+  .sidebar { padding: var(--s-5) var(--s-3); align-items: center; }
+}
+
+/* Mobile — bottom tab bar */
+@media (max-width: 767px) {
+  .shell { display: block; }
+  .sidebar { display: none; }
+  .main {
+    padding: var(--s-5) var(--s-4) calc(var(--tabbar-h) + var(--s-7) + env(safe-area-inset-bottom));
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Grid helpers
+   -------------------------------------------------------------------------- */
+
+.grid {
+  display: grid;
+  gap: var(--s-4);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+.span-12 { grid-column: span 12; }
+.span-8 { grid-column: span 8; }
+.span-7 { grid-column: span 7; }
+.span-6 { grid-column: span 6; }
+.span-5 { grid-column: span 5; }
+.span-4 { grid-column: span 4; }
+.span-3 { grid-column: span 3; }
+
+@media (max-width: 1023px) {
+  .span-8, .span-7, .span-6, .span-5, .span-4 { grid-column: span 12; }
+  .span-3 { grid-column: span 6; }
+}
+@media (max-width: 479px) {
+  .grid { gap: var(--s-3); }
+}
+
+.stack { display: flex; flex-direction: column; }
+.stack-2 { gap: var(--s-2); }
+.stack-3 { gap: var(--s-3); }
+.stack-4 { gap: var(--s-4); }
+.stack-5 { gap: var(--s-5); }
+.stack-6 { gap: var(--s-6); }
+.stack-7 { gap: var(--s-7); }
+
+.row { display: flex; align-items: center; }
+.row-2 { gap: var(--s-2); }
+.row-3 { gap: var(--s-3); }
+.row-4 { gap: var(--s-4); }
+.between { justify-content: space-between; }
+.wrap { flex-wrap: wrap; }
+.grow { flex: 1 1 auto; min-width: 0; }
+
+/* Two equal columns at every width */
+.grid-2 {
+  display: grid;
+  gap: var(--s-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 479px) {
+  .grid-2 { gap: var(--s-3); }
+}
+
+/* On narrow layouts, surface the session panel before the detail column */
+@media (max-width: 1023px) {
+  .order-first-narrow { order: -1; }
+}
