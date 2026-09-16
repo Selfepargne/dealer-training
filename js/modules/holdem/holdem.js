@@ -1,6 +1,7 @@
 /*
   Texas Hold'em exercise screen (2 to 6 players).
   Questions come from skills.js (checked by the engine); this file only handles display and wording.
+  Dealer situations (table setup, flow, chips) are displayed by dealer-view.js on the same table.
 
   Every exercise module provides the same small set of functions, used by js/views/session.js:
     create(skillId, { players })  → a new question
@@ -18,6 +19,8 @@
   const { Card } = DT.components;
   const P = DT.poker;
   const { createQuestion, firstDifference, DEFINING } = DT.holdemSkills;
+  const dealerView = DT.holdemDealerView; // table setup, flow of a hand, chips and bets
+  const isDealerKind = (q) => q.kind === 'table' || q.kind === 'flow' || q.kind === 'chips';
 
   const t = (key, vars) => DT.i18n.t(key, vars);
   const rankChar = (value) => P.RANKS[value - 2];
@@ -28,13 +31,13 @@
 
   const TABLE_SIZES = [2, 3, 4, 5, 6];
 
-  /** "Auto": the table grows with the level of the skill. */
+  /** "Auto": the table grows with the level of the skill (or follows the skill's own range). */
   const AUTO_PLAYERS = { beginner: [2, 2], intermediate: [2, 3], advanced: [3, 4], expert: [4, 6] };
 
   function playersFor(skillId, setting, random = Math.random) {
     if (TABLE_SIZES.includes(Number(setting))) return Number(setting);
-    const level = DT.data.holdemSkills.byId[skillId].level;
-    const [min, max] = AUTO_PLAYERS[level];
+    const skill = DT.data.holdemSkills.byId[skillId];
+    const [min, max] = skill.players || AUTO_PLAYERS[skill.level];
     return min + Math.floor(random() * (max - min + 1));
   }
 
@@ -83,8 +86,22 @@
   // Exercise
   // ---------------------------------------------------------------------------
 
+  /**
+   * Progressive difficulty inside a skill: stage 1 for the first 15 questions, stage 2 up to 40, then stage 3.
+   * A mastered skill always gets the full range.
+   */
+  const STAGE_AFTER = [15, 40];
+
+  function stageFor(skillId) {
+    const data = DT.core.state && DT.core.state.get();
+    const rec = data && data.stats.skills.holdem && data.stats.skills.holdem.skills[skillId];
+    if (!rec) return 1;
+    if (rec.masteredAt || rec.questions >= STAGE_AFTER[1]) return 3;
+    return rec.questions >= STAGE_AFTER[0] ? 2 : 1;
+  }
+
   function create(skillId, { players = 2 } = {}) {
-    return createQuestion(skillId, { players });
+    return createQuestion(skillId, { players, stage: stageFor(skillId) });
   }
 
   /** Cards come in with a very short fade; `order` staggers them by a few milliseconds. */
@@ -118,6 +135,7 @@
   }
 
   function view(q) {
+    if (isDealerKind(q)) return dealerView.view(q);
     if (q.kind === 'recognition') {
       return {
         stage: h('div', { class: 'holdem table--solo' }, felt(q), seat(q, 0, 'bottom', t('holdem.hole'))),
@@ -149,6 +167,7 @@
 
   /** Winners marked, their five cards stay bright, everything else is dimmed. */
   function reveal(q, stage) {
+    if (isDealerKind(q)) return dealerView.reveal(q, stage);
     stage.classList.add('is-revealed');
     const bright = new Set();
     q.winners.forEach((w) => q.players[w].hand.cards.forEach((c) => bright.add(c)));
@@ -173,6 +192,7 @@
    *            items are strings, { label, cards, hand } or { result }
    */
   function explain(q) {
+    if (isDealerKind(q)) return dealerView.explain(q);
     if (q.kind === 'recognition') {
       const hand = q.players[0].hand;
       return {
@@ -242,5 +262,5 @@
     return { ...base, short, why: [...why, decides, result] };
   }
 
-  DT.exercises.holdem = { create, view, correct, isHard, reveal, explain, handName, TABLE_SIZES, playersFor };
+  DT.exercises.holdem = { create, view, correct, isHard, reveal, explain, handName, TABLE_SIZES, playersFor, stageFor, STAGE_AFTER };
 })(window.DT);

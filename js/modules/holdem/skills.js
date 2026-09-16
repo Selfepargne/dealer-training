@@ -1,5 +1,6 @@
 /*
   Hold'em question generators, one per skill (see js/data/holdem-skills.js).
+  The dealer situations of the beginner level (table, flow, chips) come from dealer.js.
 
   How a generator works:
     1. seed()   places the few cards that create the situation (e.g. a pair on the board)
@@ -13,6 +14,7 @@
   'use strict';
 
   const P = DT.poker;
+  const D = DT.holdemDealer;
   const { SKILLS, byId } = DT.data.holdemSkills;
 
   // Leading values that define a hand; values after them are kickers.
@@ -236,6 +238,13 @@
     },
   };
 
+  // Beginner "hand comparison" gathers the basic comparisons; the situations get closer stage by stage.
+  const COMPARISON_SOURCES = {
+    1: ['simple_winner', 'pair_vs_pair'],
+    2: ['pair_vs_pair', 'two_pair', 'trips', 'kicker'],
+    3: ['two_pair', 'trips', 'kicker', 'board_pair', 'board_plays'],
+  };
+
   // Expert draws its situations from the closest intermediate and advanced skills.
   const CLOSE_CALL_SOURCES = ['kicker', 'full_house', 'board_plays', 'straight_on_board', 'flush_on_board', 'full_house_on_board', 'complex_kicker'];
 
@@ -255,19 +264,26 @@
     straightFlush: (r) => { const s = randomSuit(r); const low = int(2, 10, r); return [0, 1, 2, 3, 4].map((k) => card(low + k, s)); },
   };
 
-  function recognitionQuestion(random) {
-    const target = pick(P.CATEGORIES, random);
+  // The last hand types asked, so the same answer does not come back twice in a row.
+  const recentTargets = [];
+
+  function recognitionQuestion(random, stage) {
+    const target = pick(P.CATEGORIES.filter((c) => !recentTargets.includes(c)), random);
     const forced = RECOGNITION_SEEDS[target](random);
     const deck = P.shuffle(P.newDeck().filter((c) => !forced.includes(c)), random);
     const seven = P.shuffle(forced.concat(deck.slice(0, 7 - forced.length)), random);
     const hand = P.bestHand(seven);
     if (category(hand) !== target) return null;
 
-    // Three wrong answers, taken from the neighbouring hand types.
+    // Three wrong answers. First stage: any hand types. Later: the neighbouring types, the easiest to confuse.
     const index = P.CATEGORIES.indexOf(target);
-    const others = P.shuffle(P.CATEGORIES.filter((c) => c !== target), random)
-      .sort((a, b) => Math.abs(P.CATEGORIES.indexOf(a) - index) - Math.abs(P.CATEGORIES.indexOf(b) - index));
+    const distance = (c) => Math.abs(P.CATEGORIES.indexOf(c) - index);
+    let others = P.shuffle(P.CATEGORIES.filter((c) => c !== target), random);
+    if (stage > 1) others = others.sort((a, b) => distance(a) - distance(b));
     const options = [target, ...others.slice(0, 3)].sort((a, b) => P.CATEGORIES.indexOf(a) - P.CATEGORIES.indexOf(b));
+
+    recentTargets.push(target);
+    if (recentTargets.length > 2) recentTargets.shift();
 
     return {
       kind: 'recognition',
@@ -284,8 +300,9 @@
   // Create a question for a skill
   // ---------------------------------------------------------------------------
 
-  /** Extra seconds allowed per player beyond two: a bigger table takes longer to read. */
-  const MS_PER_EXTRA_PLAYER = 700;
+  /** Extra time allowed per player beyond two: a bigger table takes longer to read. */
+  const MS_PER_EXTRA_PLAYER = 700; // showdowns: every hand must be read
+  const MS_PER_EXTRA_SEAT = 250; // dealer situations: seats, markers and chips
 
   /**
    * "Who wins?" at a table of 2 to 6 players.
@@ -332,17 +349,36 @@
 
   /**
    * @param {string} skillId
-   * @param {{ players?: number, random?: () => number }} options  players: 2 to 6 (ignored for hand recognition)
-   * @returns question with: type, module, skill, level, difficulty, targetMs, kind, board, players, winners, split, answer
+   * @param {{ players?: number, random?: () => number, stage?: 1|2|3 }} options
+   *   players: 2 to 6 (ignored for hand recognition) · stage: progressive difficulty inside a beginner skill
+   * @returns question with: type, module, skill, level, difficulty, stage, targetMs, kind, answer, and
+   *   showdowns (recognition, winner): board, players, winners, split
+   *   dealer situations (table, flow, chips): see dealer.js
    */
-  function createQuestion(skillId, { players = 2, random = Math.random } = {}) {
+  function extraTime(q) {
+    if (q.kind === 'winner') return (q.players.length - 2) * MS_PER_EXTRA_PLAYER;
+    if (q.seats) return (q.seats.length - 2) * MS_PER_EXTRA_SEAT;
+    return 0;
+  }
+
+  function createQuestion(skillId, { players = 2, random = Math.random, stage = 1 } = {}) {
     const skill = byId[skillId];
     if (!skill) throw new Error(`Unknown Hold'em skill: ${skillId}`);
     const seats = Math.min(6, Math.max(2, Math.round(players)));
+    const level = Math.min(3, Math.max(1, Math.round(stage)));
+    // Chosen once, so that situations that are harder to deal are not under-represented.
+    const source = skillId === 'hand_comparison' ? pick(COMPARISON_SOURCES[level], random) : null;
 
     for (let attempt = 0; attempt < 5000; attempt++) {
       let q;
-      if (skillId === 'hand_recognition') q = recognitionQuestion(random);
+      if (skillId === 'hand_recognition') q = recognitionQuestion(random, level);
+      else if (skillId === 'hand_comparison') {
+        q = winnerQuestion(source, random, seats);
+        if (q) q.situation = source;
+      }
+      else if (skillId === 'table_setup') q = D.tableQuestion(level, seats, random);
+      else if (skillId === 'hand_flow') q = D.flowQuestion(level, seats, random);
+      else if (skillId === 'chips_bets') q = D.chipsQuestion(level, seats, random);
       else if (skillId === 'close_calls') q = winnerQuestion(pick(CLOSE_CALL_SOURCES, random), random, seats);
       else q = winnerQuestion(skillId, random, seats);
 
@@ -353,7 +389,8 @@
           skill: skill.id,
           level: skill.level,
           difficulty: skill.difficulty,
-          targetMs: skill.targetMs + (q.kind === 'winner' ? (q.players.length - 2) * MS_PER_EXTRA_PLAYER : 0),
+          stage: level,
+          targetMs: skill.targetMs + extraTime(q),
           ...q,
         };
       }
@@ -361,5 +398,5 @@
     throw new Error(`Could not generate a question for ${skillId}`);
   }
 
-  DT.holdemSkills = { createQuestion, firstDifference, DEFINING, MS_PER_EXTRA_PLAYER, SKILL_IDS: SKILLS.map((s) => s.id) };
+  DT.holdemSkills = { createQuestion, firstDifference, DEFINING, MS_PER_EXTRA_PLAYER, MS_PER_EXTRA_SEAT, COMPARISON_SOURCES, CLOSE_CALL_SOURCES, SKILL_IDS: SKILLS.map((s) => s.id) };
 })(window.DT);

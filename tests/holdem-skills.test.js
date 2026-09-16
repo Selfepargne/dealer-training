@@ -8,15 +8,18 @@
     - the stored answer matches a fresh engine showdown (split included)
     - the situation really matches the skill (between the two key players)
     - extra players never beat the key winner
+  Dealer situations (table setup, flow, chips): metadata and options here, rules in tests/dealer.test.js.
 */
 global.window = { DT: { data: {} } };
 require('../js/modules/holdem/engine.js');
 require('../js/data/holdem-skills.js');
+require('../js/modules/holdem/dealer.js');
 require('../js/modules/holdem/skills.js');
 
 const P = window.DT.poker;
 const { SKILLS } = window.DT.data.holdemSkills;
-const { createQuestion, firstDifference } = window.DT.holdemSkills;
+const { createQuestion, firstDifference, COMPARISON_SOURCES } = window.DT.holdemSkills;
+const DEALER_KINDS = ['table', 'flow', 'chips'];
 
 const PER_SKILL = 500;
 const results = [];
@@ -34,10 +37,16 @@ const playsBoard = (h, board) => h.cards.every((c) => board.includes(c));
 const EXPECT = {
   hand_recognition: (q) => q.kind === 'recognition' && q.answer === cat(P.bestHand(q.players[0].cards.concat(q.board)))
     && q.options.length === 4 && q.options.includes(q.answer) && new Set(q.options).size === 4,
+  // Beginner comparison: each question must match the situation it was built from (the former beginner skills).
+  hand_comparison: (q, hands) => COMPARISON_SOURCES[q.stage].includes(q.situation) && EXPECT[q.situation](q, hands),
   simple_winner: (q, [a, b]) => !q.split && Math.abs(a.category - b.category) >= 2,
   pair_vs_pair: (q, [a, b]) => cat(a) === 'pair' && cat(b) === 'pair' && a.values[0] !== b.values[0],
   two_pair: (q, [a, b]) => cat(a) === 'twoPair' && cat(b) === 'twoPair' && (a.values[0] !== b.values[0] || a.values[1] !== b.values[1]),
   trips: (q, [a, b]) => cat(a) === 'trips' && cat(b) === 'trips' && a.values[0] !== b.values[0],
+  // Dealer situations: checked in detail by tests/dealer.test.js
+  table_setup: (q) => q.kind === 'table',
+  hand_flow: (q) => q.kind === 'flow',
+  chips_bets: (q) => q.kind === 'chips',
   kicker: (q, [a, b]) => !q.split && a.category === b.category && a.values[0] === b.values[0] && firstDifference(a, b) >= 1,
   straight: (q, [a, b]) => !q.split && cat(a) === 'straight' && cat(b) === 'straight',
   flush: (q, [a, b]) => !q.split && cat(a) === 'flush' && cat(b) === 'flush',
@@ -59,6 +68,7 @@ const EXPECT = {
 const LEVEL_ORDER = ['beginner', 'intermediate', 'advanced', 'expert'];
 
 test('Every skill has an expectation, a unique id and a coherent difficulty', () => {
+  assert(SKILLS.filter((s) => s.level === 'beginner').map((s) => s.id).join() === 'hand_recognition,hand_comparison,table_setup,hand_flow,chips_bets', 'beginner path');
   assert(SKILLS.length === 16, `16 skills expected, got ${SKILLS.length}`);
   SKILLS.forEach((s, i) => {
     assert(EXPECT[s.id], `no expectation for ${s.id}`);
@@ -70,7 +80,7 @@ test('Every skill has an expectation, a unique id and a coherent difficulty', ()
 
 const splitCounts = {};
 
-const { MS_PER_EXTRA_PLAYER } = window.DT.holdemSkills;
+const { MS_PER_EXTRA_PLAYER, MS_PER_EXTRA_SEAT } = window.DT.holdemSkills;
 
 for (const skill of SKILLS) {
   test(`${skill.id} — ${PER_SKILL} valid questions, 2 to 6 players`, () => {
@@ -78,11 +88,20 @@ for (const skill of SKILLS) {
     const seen = new Set();
     for (let i = 0; i < PER_SKILL; i++) {
       const players = 2 + (i % 5);
-      const q = createQuestion(skill.id, { players });
+      const stage = 1 + (i % 3);
+      const q = createQuestion(skill.id, { players, stage });
 
       // Metadata
       assert(q.type === 'holdem' && q.module === 'holdem', 'type/module');
-      assert(q.skill === skill.id && q.level === skill.level && q.difficulty === skill.difficulty, 'skill metadata');
+      assert(q.skill === skill.id && q.level === skill.level && q.difficulty === skill.difficulty && q.stage === stage, 'skill metadata');
+
+      if (DEALER_KINDS.includes(q.kind)) {
+        assert(EXPECT[skill.id](q), 'question kind');
+        assert(q.seats.length === players, `${players} seats expected, got ${q.seats.length}`);
+        assert(q.targetMs === skill.targetMs + (players - 2) * MS_PER_EXTRA_SEAT, 'target time grows with the table');
+        assert(q.options.includes(q.answer) && new Set(q.options).size === q.options.length, 'answer among unique options');
+        continue;
+      }
       const seats = q.kind === 'winner' ? players : 1;
       assert(q.players.length === seats, `${seats} players expected, got ${q.players.length}`);
       assert(q.targetMs === skill.targetMs + (seats === 1 ? 0 : (seats - 2) * MS_PER_EXTRA_PLAYER), 'target time grows with the table');
@@ -124,7 +143,7 @@ for (const skill of SKILLS) {
       }
       seen.add(all.join(''));
     }
-    assert(seen.size > PER_SKILL * 0.95, `not varied enough: ${seen.size} unique of ${PER_SKILL}`);
+    if (!DEALER_KINDS.includes(createQuestion(skill.id).kind)) assert(seen.size > PER_SKILL * 0.95, `not varied enough: ${seen.size} unique of ${PER_SKILL}`);
     splitCounts[skill.id] = splits;
   });
 }
@@ -139,8 +158,38 @@ test('Split pots appear where they should, and never where they should not', () 
   for (const id of ['straight_on_board', 'flush_on_board', 'full_house_on_board', 'complex_kicker', 'close_calls']) {
     assert(splitCounts[id] > 0, `${id}: no split generated`);
   }
-  for (const id of ['simple_winner', 'kicker', 'straight', 'flush', 'full_house', 'board_pair']) {
+  for (const id of ['kicker', 'straight', 'flush', 'full_house', 'board_pair']) {
     assert(splitCounts[id] === 0, `${id}: split generated`);
+  }
+});
+
+test('Hand comparison: progressive stages, every former beginner situation still generated', () => {
+  const EXPECTED = {
+    1: ['simple_winner', 'pair_vs_pair'],
+    2: ['pair_vs_pair', 'two_pair', 'trips', 'kicker'],
+    3: ['two_pair', 'trips', 'kicker', 'board_pair', 'board_plays'],
+  };
+  for (const stage of [1, 2, 3]) {
+    const seen = {};
+    let splits = 0;
+    for (let i = 0; i < 400; i++) {
+      const q = createQuestion('hand_comparison', { players: 2 + (i % 2), stage });
+      seen[q.situation] = (seen[q.situation] || 0) + 1;
+      if (q.split) splits++;
+    }
+    assert(JSON.stringify(Object.keys(seen).sort()) === JSON.stringify(EXPECTED[stage].slice().sort()), `stage ${stage}: ${Object.keys(seen)}`);
+    Object.entries(seen).forEach(([id, n]) => assert(n > 400 / EXPECTED[stage].length / 2, `stage ${stage}: ${id} under-represented (${n})`));
+    if (stage < 3) assert(splits === 0, `stage ${stage}: no split expected`);
+    else assert(splits > 0, 'stage 3: the shared board brings split pots');
+  }
+});
+
+test('Hand recognition: the same hand type never comes back twice in a row', () => {
+  let previous = null;
+  for (let i = 0; i < 300; i++) {
+    const q = createQuestion('hand_recognition', { stage: 1 + (i % 3) });
+    assert(q.answer !== previous, `${q.answer} twice in a row`);
+    previous = q.answer;
   }
 });
 

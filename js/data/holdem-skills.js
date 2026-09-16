@@ -1,10 +1,11 @@
 /*
-  Texas Hold'em learning path — 2 players.
+  Texas Hold'em learning path.
   Names and descriptions are in js/i18n/*.js under "holdemSkills.<id>".
 
   level      — beginner · intermediate · advanced · expert
   difficulty — position in the path (1 = easiest)
   targetMs   — target response time; used for "fast" answers, Speed mode and mastery
+  players    — optional [min, max] table size when the table setting is "Auto" (default: by level)
 
   A skill is MASTERED when all three conditions are met (see MASTERY below).
   Once mastered, it stays mastered.
@@ -13,12 +14,12 @@
   'use strict';
 
   const SKILLS = [
-    // Beginner — obvious situations
+    // Beginner — the dealer's basics: read hands, run the table, handle the chips
     { id: 'hand_recognition', level: 'beginner', difficulty: 1, targetMs: 3000 },
-    { id: 'simple_winner', level: 'beginner', difficulty: 2, targetMs: 3000 },
-    { id: 'pair_vs_pair', level: 'beginner', difficulty: 3, targetMs: 3500 },
-    { id: 'two_pair', level: 'beginner', difficulty: 4, targetMs: 4000 },
-    { id: 'trips', level: 'beginner', difficulty: 5, targetMs: 4000 },
+    { id: 'hand_comparison', level: 'beginner', difficulty: 2, targetMs: 4000, players: [2, 3] },
+    { id: 'table_setup', level: 'beginner', difficulty: 3, targetMs: 4000, players: [2, 6] },
+    { id: 'hand_flow', level: 'beginner', difficulty: 4, targetMs: 4500, players: [2, 6] },
+    { id: 'chips_bets', level: 'beginner', difficulty: 5, targetMs: 6000, players: [2, 6] },
 
     // Intermediate — close comparisons
     { id: 'kicker', level: 'intermediate', difficulty: 6, targetMs: 4000 },

@@ -1,0 +1,323 @@
+/* ==========================================================================
+   Dealer table — table setup, flow of a hand, chips & bets
+   An oval table: the dealer at the top middle, the players clockwise from the dealer's left,
+   the dealer button on the gold line, the bets on the felt in front of each player.
+   Everything around the table is placed on an ellipse from --sin / --cos (set in dealer-view.js).
+   ========================================================================== */
+
+.dealer-table {
+  /* Ellipses, in % of the table surface */
+  --rail-rx: 36%;   /* the gold line (edge of the felt) */
+  --rail-ry: 34%;
+  --seat-rx: 43%;   /* players and dealer */
+  --seat-ry: 44%;
+  --bet-rx: 22%;    /* chips & bets: engaged chips on an inner oval of the felt */
+  --bet-ry: 30%;
+  --pull-x: 150px;  /* flow of a hand: bets pushed from the player towards the centre */
+  --pull-y: 96px;
+
+  --card-seat: 30px;
+  --card-board: 46px;
+  --disc-w: 44px;
+  --disc-h: 13px;
+  --felt-light: #14291f;
+  --felt-dark: #0a1611;
+  --rail-line: rgba(194, 162, 122, 0.55);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.dealer-table__surface {
+  position: relative;
+  aspect-ratio: 2 / 1;
+  margin: 44px 0 52px; /* room for the places above and below the table */
+}
+
+/* Anything placed around the table */
+.on-ring, .on-bets, .on-rail {
+  position: absolute;
+  left: calc(50% + var(--sin) * var(--rx));
+  top: calc(50% - var(--cos) * var(--ry));
+  transform: translate(-50%, -50%);
+}
+.on-ring { --rx: var(--seat-rx); --ry: var(--seat-ry); z-index: 2; }
+.on-bets { --rx: var(--bet-rx); --ry: var(--bet-ry); z-index: 1; }
+.on-rail { --rx: var(--rail-rx); --ry: var(--rail-ry); z-index: 3; }
+
+/* ---- Felt, rail and gold line ------------------------------------------------ */
+
+.felt-oval {
+  position: absolute;
+  inset: calc(50% - var(--rail-ry)) calc(50% - var(--rail-rx));
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--rail-line); /* the gold line: the dealer button sits on it */
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 45%, var(--felt-light) 0%, var(--felt-dark) 78%);
+  box-shadow:
+    0 0 0 10px #070807,               /* rail */
+    0 0 0 11px rgba(0, 0, 0, 0.9),
+    inset 0 0 60px 16px rgba(0, 0, 0, 0.45),
+    0 28px 60px -24px rgba(0, 0, 0, 0.9);
+}
+.felt-centre { display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
+.felt__label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(237, 230, 214, 0.42);
+}
+
+.dealer-board { display: flex; gap: 6px; }
+.dealer-board .pcard { --w: var(--card-board); }
+.card-slot {
+  width: var(--card-board);
+  aspect-ratio: 5 / 7;
+  border: 1px dashed rgba(194, 162, 122, 0.22);
+  border-radius: calc(var(--card-board) * 0.09);
+}
+.dealer-deck { display: flex; flex-direction: column; align-items: center; gap: var(--s-2); }
+.dealer-deck .pcard { --w: 36px; }
+
+/* POT: the chips already collected, in the middle of the felt */
+.pot { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 16px 10px; border: 1px solid rgba(194, 162, 122, 0.28); border-radius: 14px; background: rgba(0, 0, 0, 0.22); }
+.pot .felt__label { color: var(--accent); }
+/* Stage of the hand (chips & bets): at the top of the felt, the centre stays for the pot */
+.felt__street { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); }
+.pot__amount { font-size: var(--fs-small); font-weight: 600; color: var(--accent-hi); }
+.pot__amount:empty { display: none; }
+
+/* ---- Dealer's place and the dealer button ------------------------------------ */
+
+.place--dealer {
+  display: grid;
+  place-items: center;
+  min-width: 112px;
+  padding: 8px 16px;
+  border: 1px solid var(--accent-line);
+  border-radius: 999px;
+  background: #0b0c0b;
+}
+.place__label {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--accent-hi);
+}
+
+.dealer-button {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, #1b1a18 0%, #070707 75%);
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    inset 0 0 0 4px #070707,
+    inset 0 0 0 5px rgba(194, 162, 122, 0.45),
+    0 3px 10px rgba(0, 0, 0, 0.75);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--accent-hi);
+  user-select: none;
+}
+
+/* ---- Players ------------------------------------------------------------------ */
+
+.seat--dealer {
+  gap: 4px;
+  min-width: 108px;
+  padding: 6px 10px 8px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  background: rgba(8, 10, 9, 0.88);
+}
+.seat--dealer .seat__label { color: var(--ivory); }
+.seat--dealer.is-out { background: rgba(8, 10, 9, 0.6); border-color: var(--line); }
+.seat--dealer.is-out .seat__label { color: var(--text-3); }
+
+/* Under the name: blinds and the last action */
+.seat__tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; min-height: 18px; }
+.tag {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tag:empty { display: none; }
+.tag--blind { border: 1px solid var(--accent-line); background: #0b0c0b; color: var(--accent-hi); }
+.tag--status { color: var(--accent-hi); }
+.tag--status.is-fold { color: var(--text-3); }
+
+.seat__cards { gap: 3px; }
+.seat__cards .pcard { --w: var(--card-seat); }
+/* ---- CAVE: the chips a player still has — in the player's place, off the felt ------ */
+
+.cave {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "label amount" "chips chips";
+  align-items: center;
+  gap: 3px 10px;
+  align-self: stretch; /* as wide as the place, or wider when the chips need it: the place grows with it */
+  min-width: 104px;
+  margin-top: 3px;
+  padding: 5px 8px 6px;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  background: linear-gradient(180deg, #131412 0%, #0a0b0a 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.cave__label { grid-area: label; font-size: 0.5rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3); }
+.cave__amount { grid-area: amount; justify-self: end; font-size: 0.6875rem; font-weight: 600; color: var(--ivory); white-space: nowrap; }
+.cave__chips { grid-area: chips; display: flex; align-items: flex-end; justify-content: center; min-height: 16px; }
+.cave.is-empty .cave__amount { color: var(--text-3); }
+.seat--upper .cave { order: -1; margin: 0 0 3px; }
+.seat__empty { width: calc(var(--disc-w) * 0.72); height: calc(var(--disc-h) * 0.7); border: 1px dashed rgba(237, 230, 214, 0.25); border-radius: 5px / 50%; }
+
+/* ---- Bets on the felt -------------------------------------------------------- */
+
+.bet-spot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.bet-spot .chip { --size: 34px; }
+.bet-spot--in-seat {
+  position: absolute;
+  left: calc(50% - var(--sin) * var(--pull-x));
+  top: calc(50% + var(--cos) * var(--pull-y));
+  transform: translate(-50%, -50%);
+}
+
+/* Chips & bets: bigger places (with the cave) pushed a little away from the felt */
+.dealer-table--chips .dealer-table__surface { aspect-ratio: 16 / 9; margin: 76px 0 96px; }
+/* Engaged chips: an inner oval measured so that every bet stays fully on the felt, clear of the pot and of the other bets */
+.dealer-table--chips { --bet-rx: 24.4%; --bet-ry: 22.5%; }
+.dealer-table--chips .pot { flex-direction: row; gap: 10px; padding: 6px 12px; }
+.dealer-table--chips .seat--dealer.on-ring { transform: translate(calc(-50% + var(--sin) * 24%), calc(-50% - var(--cos) * 24%)); }
+.seat__amount { font-size: var(--fs-small); font-weight: 600; color: var(--accent-hi); white-space: nowrap; }
+.seat__amount:empty { display: none; }
+
+/* Chip stacks seen from the side: a few chips, easy to count */
+.bet-stacks { display: flex; align-items: flex-end; justify-content: center; gap: 5px; }
+.stack { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.stack__discs { display: flex; flex-direction: column-reverse; width: var(--disc-w); }
+.stack__disc {
+  height: var(--disc-h);
+  margin-top: calc(var(--disc-h) * -0.3);
+  border-radius: 5px / 50%;
+  background: repeating-linear-gradient(90deg, var(--c) 0 16%, var(--e) 16% 22%), var(--c);
+  /* thin light edge: dark chips (€100) stay visible on the felt */
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 0 0 1px rgba(237, 230, 214, 0.16);
+}
+.stack__disc:first-child { margin-top: 0; }
+.stack__value { font-size: 0.6875rem; font-weight: 600; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.bet-stacks--small { gap: 3px; }
+.bet-stacks--small .stack__discs { width: calc(var(--disc-w) * 0.72); }
+.bet-stacks--small .stack__disc { height: calc(var(--disc-h) * 0.7); }
+
+/* Chip values, under the table */
+.chip-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2) var(--s-4);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.chip-legend__chips { display: flex; gap: 6px; }
+.chip-legend .chip { --size: 30px; }
+
+/* ---- After the answer ---------------------------------------------------------- */
+
+.dealer-table.is-revealed .seat--dealer.is-focus { border-color: var(--line-3); }
+.dealer-table.is-revealed .seat--dealer.is-answer,
+.seat--dealer.is-winner { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-line); }
+
+/* Answers under a dealer table */
+.exercise--holdem:has(.dealer-table) .exercise__bottom { max-width: 900px; }
+
+/* ---- Tablets ---------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .dealer-table {
+    --card-seat: 24px;
+    --card-board: 38px;
+    --disc-w: 34px;
+    --disc-h: 10px;
+    --seat-rx: 41%;
+  }
+  .seat--dealer { min-width: 92px; padding: 5px 8px 6px; }
+  .dealer-button { width: 40px; height: 40px; font-size: 0.4375rem; }
+  .dealer-table { --pull-x: 108px; --pull-y: 76px; }
+  .dealer-table--chips .dealer-table__surface { aspect-ratio: 16 / 10; }
+  .dealer-table--chips { --disc-w: 26px; --disc-h: 9px; --bet-rx: 25%; --bet-ry: 21%; }
+}
+
+/* ---- Phones: a taller oval, smaller pieces --------------------------------------- */
+
+@media (max-width: 600px) {
+  .dealer-table {
+    --rail-rx: 31%;
+    --rail-ry: 37%;
+    --bet-rx: 17%;
+    --bet-ry: 27%;
+    --seat-rx: 36%;
+    --seat-ry: 45%;
+    --card-seat: 18px;
+    --card-board: min(calc((100vw - 200px) / 5), 30px);
+    --disc-w: 24px;
+    --disc-h: 8px;
+  }
+  .dealer-table__surface { aspect-ratio: 4 / 5; margin: 28px 0 34px; }
+  .felt-oval { box-shadow: 0 0 0 6px #070807, 0 0 0 7px rgba(0, 0, 0, 0.9), inset 0 0 36px 10px rgba(0, 0, 0, 0.45); }
+  .felt-centre { gap: var(--s-2); }
+  .dealer-board { gap: 2px; }
+  .dealer-deck .pcard { --w: 24px; }
+  .felt__label { font-size: 0.5rem; letter-spacing: 0.14em; text-align: center; }
+
+  .place--dealer { min-width: 0; padding: 4px 10px; }
+  .place__label { font-size: 0.5625rem; letter-spacing: 0.1em; }
+  .dealer-button { width: 32px; height: 32px; font-size: 0.375rem; letter-spacing: 0.06em; }
+
+  .seat--dealer { min-width: 0; max-width: 84px; padding: 3px 5px 4px; gap: 2px; }
+  .seat--dealer .seat__label { font-size: 0.5625rem; letter-spacing: 0.06em; }
+  .seat__tags { min-height: 14px; gap: 2px; }
+  .tag { min-width: 20px; height: 14px; padding: 0 4px; font-size: 0.5rem; letter-spacing: 0.06em; }
+  .cave { min-width: 0; gap: 1px 4px; padding: 3px 4px 4px; }
+  .cave__label { font-size: 0.4375rem; letter-spacing: 0.08em; }
+  .cave__amount { font-size: 0.5625rem; }
+  .dealer-table--chips .dealer-table__surface { aspect-ratio: 4 / 5; margin: 64px 0 78px; }
+  .dealer-table--chips { --rail-rx: 32.5%; --bet-rx: 22%; --bet-ry: 25.5%; --disc-w: 17px; --disc-h: 7px; }
+
+  /* Flow of a hand on phones: the board takes the felt, the bet goes inside the player's box.
+     Chips & bets keep the engaged chips on the felt. */
+  .bet-spot--in-seat { position: static; transform: none; margin-top: 2px; }
+  .dealer-table--chips .pot { flex-direction: column; gap: 2px; padding: 4px 6px; }
+  .bet-stacks { gap: 2px; }
+  .bet-spot .chip { --size: 26px; }
+  .stack__value { font-size: 0.5625rem; }
+  .seat__amount, .pot__amount { font-size: 0.6875rem; }
+  .chip-legend { gap: 4px var(--s-3); font-size: 0.75rem; }
+  .chip-legend .chip { --size: 24px; }
+}

@@ -12,6 +12,7 @@ La progression est enregistrée dans le navigateur (`localStorage`). Réglages �
 ```
 node tests/poker.test.js             moteur Texas Hold'em (~15 s)
 node tests/holdem-skills.test.js     16 compétences Hold'em : questions valides et bien catégorisées
+node tests/dealer.test.js            débutant croupier : bouton, blindes, ordres, déroulement, jetons et mises
 node tests/blackjack-engine.test.js  moteur Blackjack (toutes les mains jusqu'à 5 cartes)
 node tests/blackjack-skills.test.js  compétences Blackjack jouables : questions valides
 node tests/explanations.test.js      phrases courtes et « Pourquoi ? »

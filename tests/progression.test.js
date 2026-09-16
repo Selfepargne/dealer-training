@@ -39,7 +39,7 @@ const data = () => state.get();
 // ---------------------------------------------------------------------------
 
 test('XP: correct + fast on a beginner skill = 15', () => {
-  const r = answer('pair_vs_pair', true, 1000);
+  const r = answer('hand_comparison', true, 1000);
   equal(r.parts.map((p) => p.key), ['correct', 'fast'], 'parts');
   equal(r.xp, 15, 'xp');
   equal(data().stats.xp, 15, 'total');
@@ -59,7 +59,7 @@ test('XP: the target time is the skill target, not the module default', () => {
 
 test('XP: +10 on every 10th correct answer in a row', () => {
   let last;
-  for (let i = 0; i < 10; i++) last = answer('pair_vs_pair', true, 5000);
+  for (let i = 0; i < 10; i++) last = answer('hand_comparison', true, 5000);
   assert(last.parts.some((p) => p.key === 'streak'), 'streak bonus');
 });
 
@@ -81,8 +81,8 @@ test('A mistake is logged with module, skill, level, difficulty, mode and time',
 test('Mistakes are counted per skill, most frequent first', () => {
   for (let i = 0; i < 4; i++) answer('kicker', false, 3000);
   for (let i = 0; i < 2; i++) answer('straight_on_board', false, 3000);
-  answer('two_pair', false, 3000);
-  equal(P.mistakesBySkill(data(), 'holdem').map((m) => [m.skill.id, m.count]), [['kicker', 4], ['straight_on_board', 2], ['two_pair', 1]], 'counts');
+  answer('table_setup', false, 3000);
+  equal(P.mistakesBySkill(data(), 'holdem').map((m) => [m.skill.id, m.count]), [['kicker', 4], ['straight_on_board', 2], ['table_setup', 1]], 'counts');
 });
 
 // ---------------------------------------------------------------------------
@@ -90,13 +90,13 @@ test('Mistakes are counted per skill, most frequent first', () => {
 // ---------------------------------------------------------------------------
 
 test(`Mastery needs ${MASTERY.exercises} exercises — 49 perfect answers are not enough`, () => {
-  for (let i = 0; i < 49; i++) answer('trips', true, 1000);
-  const s = P.skillStatus(data(), 'holdem', 'trips');
+  for (let i = 0; i < 49; i++) answer('chips_bets', true, 1000);
+  const s = P.skillStatus(data(), 'holdem', 'chips_bets');
   assert(!s.mastered, 'not mastered');
   equal(s.requirements.map((r) => [r.key, r.met]), [['exercises', false], ['accuracy', true], ['speed', true]], 'requirements');
-  const r = answer('trips', true, 1000);
-  assert(P.skillStatus(data(), 'holdem', 'trips').mastered, 'mastered at 50');
-  equal(r.unlocked.skills, [{ module: 'holdem', skill: 'trips' }], 'unlock reported once');
+  const r = answer('chips_bets', true, 1000);
+  assert(P.skillStatus(data(), 'holdem', 'chips_bets').mastered, 'mastered at 50');
+  equal(r.unlocked.skills, [{ module: 'holdem', skill: 'chips_bets' }], 'unlock reported once');
 });
 
 test('Mastery needs accuracy — 85 % is not enough', () => {
@@ -116,10 +116,10 @@ test('Mastery needs speed — accurate but slow is "not mastered yet"', () => {
 });
 
 test('Mastery is never lost, and nothing goes down after mistakes', () => {
-  for (let i = 0; i < 50; i++) answer('trips', true, 1000);
+  for (let i = 0; i < 50; i++) answer('chips_bets', true, 1000);
   const before = { xp: data().stats.xp, rank: data().stats.rank };
-  for (let i = 0; i < 40; i++) answer('trips', false, 9000);
-  const s = P.skillStatus(data(), 'holdem', 'trips');
+  for (let i = 0; i < 40; i++) answer('chips_bets', false, 9000);
+  const s = P.skillStatus(data(), 'holdem', 'chips_bets');
   assert(s.mastered && s.state === 'mastered' && s.progress === 1, 'still mastered');
   assert(s.accuracy === 0, 'recent accuracy still shown honestly');
   equal([data().stats.xp, data().stats.rank], [before.xp, before.rank], 'xp and rank kept');
@@ -164,27 +164,40 @@ test('Path plan on a new profile: 20 questions of the first skill', () => {
 });
 
 test('Path plan later on: 15 on the next skill first, then 5 review of earlier skills', () => {
-  for (const id of ['hand_recognition', 'simple_winner']) for (let i = 0; i < 50; i++) answer(id, true, 1000);
+  for (const id of ['hand_recognition', 'hand_comparison']) for (let i = 0; i < 50; i++) answer(id, true, 1000);
   const plan = P.sessionPlan(data(), 'holdem', { type: 'path' });
-  assert(plan.slice(0, 15).every((id) => id === 'pair_vs_pair'), 'main block first');
-  assert(plan.slice(15).every((id) => ['hand_recognition', 'simple_winner'].includes(id)), 'review at the end');
+  assert(plan.slice(0, 15).every((id) => id === 'table_setup'), 'main block first');
+  assert(plan.slice(15).every((id) => ['hand_recognition', 'hand_comparison'].includes(id)), 'review at the end');
   equal(plan.length, 20, 'length');
 });
 
 test('Skill session: 100 % the chosen skill — even when mastered', () => {
   equal(P.sessionPlan(data(), 'holdem', { type: 'skill', skill: 'kicker' }), Array(20).fill('kicker'), 'kicker only');
-  for (let i = 0; i < 50; i++) answer('trips', true, 1000);
-  assert(P.skillStatus(data(), 'holdem', 'trips').mastered, 'mastered');
-  equal(P.sessionPlan(data(), 'holdem', { type: 'skill', skill: 'trips' }), Array(20).fill('trips'), 'mastered skills can still be practised');
+  for (let i = 0; i < 50; i++) answer('chips_bets', true, 1000);
+  assert(P.skillStatus(data(), 'holdem', 'chips_bets').mastered, 'mastered');
+  equal(P.sessionPlan(data(), 'holdem', { type: 'skill', skill: 'chips_bets' }), Array(20).fill('chips_bets'), 'mastered skills can still be practised');
 });
 
 test('Train my mistakes: the session follows recent mistakes', () => {
   for (let i = 0; i < 8; i++) answer('kicker', false, 3000);
-  answer('two_pair', false, 3000);
+  answer('table_setup', false, 3000);
   const plan = P.sessionPlan(data(), 'holdem', { type: 'mistakes' });
   const kickers = plan.filter((id) => id === 'kicker').length;
   assert(plan.length === 20 && kickers >= 12, `kicker questions: ${kickers}`);
-  assert(plan.every((id) => ['kicker', 'two_pair'].includes(id)), 'only skills with mistakes');
+  assert(plan.every((id) => ['kicker', 'table_setup'].includes(id)), 'only skills with mistakes');
+});
+
+test('Old saved profile: stats of the former beginner skills are ignored, nothing breaks', () => {
+  // Before the beginner redesign: simple_winner, pair_vs_pair, two_pair and trips existed.
+  state.update((d) => {
+    d.stats.skills.holdem.skills.pair_vs_pair = { questions: 60, correct: 60, mistakes: 3, bestMs: 900, recent: [], masteredAt: Date.now() };
+    d.stats.mistakes.push({ module: 'holdem', skill: 'two_pair', level: 'beginner', difficulty: 4, mode: 'practice', responseTime: 3 });
+  });
+  equal(P.skillList(data(), 'holdem').length, SKILLS.length, 'only current skills listed');
+  equal(P.mistakesBySkill(data(), 'holdem'), [], 'old mistakes not listed');
+  equal(P.nextSkill(data(), 'holdem').skill.id, 'hand_recognition', 'path starts at the new first skill');
+  const plan = P.sessionPlan(data(), 'holdem', { type: 'mistakes' });
+  assert(plan.every((id) => SKILLS.some((x) => x.id === id)), 'mistakes session only uses current skills');
 });
 
 test('Train my mistakes without mistakes falls back to the path', () => {
@@ -192,9 +205,9 @@ test('Train my mistakes without mistakes falls back to the path', () => {
 });
 
 test('Challenge plan only uses skills already reached', () => {
-  answer('simple_winner', true, 1000);
+  answer('hand_comparison', true, 1000);
   const plan = P.sessionPlan(data(), 'holdem', { type: 'challenge', count: 200 });
-  assert(plan.every((id) => ['hand_recognition', 'simple_winner'].includes(id)), [...new Set(plan)].join(','));
+  assert(plan.every((id) => ['hand_recognition', 'hand_comparison'].includes(id)), [...new Set(plan)].join(','));
 });
 
 test('Blackjack path: only playable skills (phase A) are proposed', () => {
@@ -234,10 +247,10 @@ test('Report advice: 80 % is not a clean session (goal is the mastery accuracy, 
 });
 
 test('Report advice: a mastered skill that slips gets "maintain", not "not accurate yet"', () => {
-  for (let i = 0; i < 50; i++) answer('trips', true, 1000);
+  for (let i = 0; i < 50; i++) answer('chips_bets', true, 1000);
   const list = [];
-  for (let i = 0; i < 10; i++) list.push(a('trips', i < 8, 1000));
-  equal(P.sessionReport(data(), 'holdem', list).advice, { key: 'maintain', skill: 'trips' }, 'advice');
+  for (let i = 0; i < 10; i++) list.push(a('chips_bets', i < 8, 1000));
+  equal(P.sessionReport(data(), 'holdem', list).advice, { key: 'maintain', skill: 'chips_bets' }, 'advice');
 });
 
 test('Report advice: accurate but slow → speed on that skill', () => {

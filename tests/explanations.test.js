@@ -14,7 +14,7 @@ window.DT.components.Chip = () => null;
 for (const f of [
   '../js/i18n/en.js', '../js/i18n/fr.js', '../js/core/i18n.js', '../js/core/format.js',
   '../js/data/holdem-skills.js', '../js/data/blackjack-skills.js',
-  '../js/modules/holdem/engine.js', '../js/modules/holdem/skills.js', '../js/modules/holdem/holdem.js',
+  '../js/modules/holdem/engine.js', '../js/modules/holdem/dealer.js', '../js/modules/holdem/skills.js', '../js/modules/holdem/dealer-view.js', '../js/modules/holdem/holdem.js',
   '../js/modules/blackjack/engine.js', '../js/modules/blackjack/skills.js', '../js/modules/blackjack/blackjack.js',
 ]) require(f);
 window.DT.i18n.setLanguage('fr');
@@ -143,6 +143,120 @@ test("Hold'em — every generated question has a short explanation, and why line
       assert(Array.isArray(ex.why) && ex.why.length >= 2 && ex.why.every((l) => !/\{|\}|undefined/.test(l)), `${id}: why ${ex.why}`);
     }
   }
+});
+
+// ---------------------------------------------------------------------------
+// Hold'em beginner — dealer situations
+// ---------------------------------------------------------------------------
+
+const D = window.DT.holdemDealer;
+const seats = (n, extra = {}) => Array.from({ length: n }, () => ({ status: null, bet: 0, cards: 'down', behind: null, chip: null, betStacks: [], behindStacks: null, ...extra }));
+
+test("Hold'em — table setup: small blind at 6 players, and the heads-up rule", () => {
+  const q = { kind: 'table', situation: 'sb', button: 2, seats: seats(6), headsUp: false, answer: '3', options: ['0', '1', '2', '3', '4', '5'], optionKind: 'player' };
+  let ex = HOLDEM.explain(q);
+  equal(ex.headline, 'Joueur 4', 'headline');
+  equal(ex.short, 'La petite blinde est à gauche du bouton.', 'short');
+  equal(ex.why[0], 'Bouton : Joueur 3', 'button');
+  equal(ex.why[1], 'Petite blinde : Joueur 4 · Grosse blinde : Joueur 5', 'blinds');
+
+  ex = HOLDEM.explain({ ...q, situation: 'firstPostflop', button: 0, seats: seats(2), headsUp: true, answer: '1' });
+  equal(ex.short, 'En tête-à-tête, la grosse blinde parle en premier après le flop.', 'heads-up short');
+  equal(ex.why[2], 'Ordre de parole : Joueur 2 → Joueur 1', 'order');
+});
+
+test("Hold'em — flow: whose turn, with folded players skipped", () => {
+  const s = seats(5);
+  s[4] = { ...s[4], cards: null, status: 'fold' };
+  s[0] = { ...s[0], status: 'check' };
+  const q = { kind: 'flow', situation: 'whoActs', street: 'flop', button: 3, seats: s, order: [0, 1, 2, 3], acted: [0], answer: '1', optionKind: 'player' };
+  const ex = HOLDEM.explain(q);
+  equal(ex.headline, 'Joueur 2', 'headline');
+  equal(ex.short, 'Après le flop, la parole part du premier joueur actif à gauche du bouton.', 'short');
+  equal(ex.why[0], 'Ordre de parole : Joueur 1 → Joueur 2 → Joueur 3 → Joueur 4', 'order');
+  equal(ex.why[1], 'Ont déjà parlé : Joueur 1', 'acted');
+  equal(ex.why[2], 'Les joueurs sans cartes sont sautés.', 'skipped');
+});
+
+test("Hold'em — flow: what the dealer does now", () => {
+  const ex = HOLDEM.explain({ kind: 'flow', situation: 'dealNext', street: 'flop', seats: seats(3), answer: 'dealTurn', optionKind: 'action' });
+  equal(ex.headline, 'Distribuer la turn', 'headline');
+  equal(ex.short, 'Enchères du flop terminées, mises au pot : on distribue la turn.', 'short');
+  const folds = HOLDEM.explain({ kind: 'flow', situation: 'pushPot', variant: 'folds', street: 'turn', seats: seats(3), answer: 'pushPot', optionKind: 'action' });
+  equal(folds.short, 'Tous les autres joueurs se sont couchés : le pot va au dernier joueur.', 'push pot');
+});
+
+test("Hold'em — chips: amount to call for the big blind", () => {
+  const s = seats(4);
+  s[1] = { ...s[1], bet: 60, status: 'raise' };
+  s[3] = { ...s[3], bet: 10 };
+  const q = { kind: 'chips', situation: 'toCall', variant: 'blinds', button: 1, seats: s, target: 3, highest: { seat: 1, amount: 60 }, own: 10, answer: '50', optionKind: 'amount' };
+  const ex = HOLDEM.explain(q);
+  equal(ex.headline, '50 €', 'headline');
+  equal(ex.short, "Pour suivre, le joueur complète jusqu'à la mise la plus haute.", 'short');
+  equal(ex.why[0], 'Mise la plus haute : 60 € (Joueur 2)', 'highest');
+  equal(ex.why[1], 'Déjà devant Joueur 4 : 10 €', 'own');
+  equal(ex.why[2].result, '60 € − 10 € = 50 €', 'result');
+});
+
+test("Hold'em — chips: stack breakdown, raise and change", () => {
+  const s = seats(3);
+  s[0] = { ...s[0], bet: 85, betStacks: D.toStacks(85, [1, 2, 5, 10, 25]) };
+  let ex = HOLDEM.explain({ kind: 'chips', situation: 'stack', seats: s, target: 0, answer: '85', optionKind: 'amount' });
+  equal(ex.why[0], 'Joueur 1 : 3 × 25 € + 1 × 10 €', 'breakdown');
+  ex = HOLDEM.explain({ kind: 'chips', situation: 'raise', seats: s, target: 2, previous: { seat: 0, amount: 20 }, raiseTo: 60, answer: '40', optionKind: 'amount' });
+  equal(ex.why[2].result, '60 € − 20 € = 40 €', 'raise');
+  ex = HOLDEM.explain({ kind: 'chips', situation: 'change', seats: s, target: 1, highest: { seat: 0, amount: 35 }, chip: 100, answer: '65', optionKind: 'amount' });
+  equal(ex.short, 'Monnaie = valeur du jeton − montant à suivre.', 'change short');
+  equal(ex.why[1].result, '100 € − 35 € = 65 €', 'change');
+});
+
+test("Hold'em — dealer situations: complete texts in French and English, at every stage", () => {
+  const clean = (text) => typeof text === 'string' && text.length > 0 && !/\{|\}|undefined|dealer\.|NaN/.test(text);
+  for (const lang of ['fr', 'en']) {
+    window.DT.i18n.setLanguage(lang);
+    for (const id of ['table_setup', 'hand_flow', 'chips_bets']) {
+      for (let i = 0; i < 300; i++) {
+        const q = window.DT.holdemSkills.createQuestion(id, { players: 2 + (i % 5), stage: 1 + (i % 3) });
+        const ex = HOLDEM.explain(q);
+        const where = `${lang} ${id}/${q.situation}`;
+        assert(clean(ex.headline) && clean(ex.short), `${where}: ${ex.headline} / ${ex.short}`);
+        assert(ex.why.length >= 2 && ex.why.every((l) => clean(typeof l === 'string' ? l : l.result)), `${where}: why ${JSON.stringify(ex.why)}`);
+        // Speed mode shows the label of the right option: every label must exist.
+        q.options.forEach((o) => assert(clean(window.DT.holdemDealerView.optionLabel(q, o)), `${where}: option ${o}`));
+        const prompt = window.DT.i18n.t(`dealer.prompts.${q.kind}.${q.situation}`, { player: 'X', chip: 'Y' });
+        assert(clean(prompt), `${where}: prompt ${prompt}`);
+      }
+    }
+  }
+  window.DT.i18n.setLanguage('fr');
+  equal(window.DT.i18n.t('dealer.money', { amount: 35 }), '35 €', 'FR amount');
+});
+
+test("Hold'em — progressive stages follow the practice of the skill", () => {
+  const record = { questions: 0, masteredAt: null };
+  window.DT.core.state = { get: () => ({ stats: { skills: { holdem: { skills: { chips_bets: record } } } } }) };
+  const stage = () => HOLDEM.stageFor('chips_bets');
+  equal(stage(), 1, 'new skill');
+  record.questions = 15;
+  equal(stage(), 2, 'after 15 questions');
+  record.questions = 40;
+  equal(stage(), 3, 'after 40 questions');
+  Object.assign(record, { questions: 5, masteredAt: 1 });
+  equal(stage(), 3, 'mastered: full range');
+  equal(HOLDEM.stageFor('table_setup'), 1, 'never practised');
+  equal(HOLDEM.create('chips_bets', { players: 4 }).stage, 3, 'create uses the stage');
+  delete window.DT.core.state;
+  equal(HOLDEM.stageFor('chips_bets'), 1, 'no saved data');
+});
+
+test("Hold'em — Auto table size: dealer skills use 2 to 6 players, comparison 2 to 3", () => {
+  const sizes = (id) => new Set(Array.from({ length: 400 }, () => HOLDEM.playersFor(id, 'auto')));
+  equal([...sizes('table_setup')].sort().join(), '2,3,4,5,6', 'table setup');
+  equal([...sizes('hand_comparison')].sort().join(), '2,3', 'comparison');
+  equal([...sizes('kicker')].sort().join(), '2,3', 'intermediate unchanged');
+  equal(HOLDEM.playersFor('chips_bets', '5'), 5, 'fixed setting wins');
+  assert(!HOLDEM.isHard(window.DT.holdemSkills.createQuestion('chips_bets')), 'beginner questions are not "hard"');
 });
 
 // ---------------------------------------------------------------------------
