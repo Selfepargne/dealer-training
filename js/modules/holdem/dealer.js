@@ -25,41 +25,84 @@
   const clockwise = (n, from) => range(n).map((k) => (from + k) % n);
 
   /**
-   * Who is where for one hand.
-   *   3+ players: SB left of the button, BB left of SB; first card to SB;
-   *               first to act preflop left of BB, postflop the first player left of the button.
-   *   Heads-up:   the button is the small blind. The big blind receives the first card,
-   *               the button acts first preflop and last after the flop.
+   * The blinds: clockwise BUTTON → SB → BB. Heads-up: the button is the small blind, the other player the big blind.
+   */
+  function blindSeats(n, button) {
+    if (n === 2) return { sb: button, bb: (button + 1) % 2 };
+    return { sb: (button + 1) % n, bb: (button + 2) % n };
+  }
+
+  /**
+   * WHO ACTS — the single rule of the Hold'em module for the order of action. Every skill, question,
+   * answer and explanation goes through getFirstToAct / getNextToAct / actionOrder.
+   *   preflop:  the first ACTIVE player after the big blind, clockwise;
+   *   postflop: the first ACTIVE player after the button (to its left), clockwise.
+   * Folded players are skipped and can never be returned. Heads-up follows from the same rule
+   * (preflop: after the big blind comes the button; postflop: after the button comes the big blind).
+   *
+   * @param {{ players: number, button: number, active?: number[] }} state  active: seats still holding cards (default: all)
+   * @param {'preflop'|'flop'|'turn'|'river'} street
+   * @returns {{ start: number, seat: number|null, skipped: number[] }}
+   *   start: the seat where the search begins · seat: the player who acts first · skipped: folded seats passed over
+   */
+  function getFirstToAct(state, street) {
+    return getNextToAct(state, street, []);
+  }
+
+  /**
+   * The player to act while a betting round is under way: from the start seat, clockwise, the first ACTIVE player
+   * who has not acted yet. skipped: the folded seats passed over since the last player who acted.
+   * @param {number[]} acted  active seats that already acted on this street
+   */
+  function getNextToAct(state, street, acted = []) {
+    const n = state.players;
+    const active = state.active || range(n);
+    const after = street === 'preflop' ? blindSeats(n, state.button).bb : state.button;
+    const start = (after + 1) % n;
+    let skipped = [];
+    for (const seat of clockwise(n, start)) {
+      if (!active.includes(seat)) { skipped.push(seat); continue; }
+      if (acted.includes(seat)) { skipped = []; continue; }
+      return { start, seat, skipped };
+    }
+    return { start, seat: null, skipped };
+  }
+
+  /**
+   * Who is where for one hand (everybody still in).
+   *   SB / BB: see blindSeats · first card: the player after the button (heads-up: the big blind)
+   *   firstPreflop / firstPostflop: getFirstToAct with every player active.
    */
   function positions(n, button) {
-    if (n === 2) {
-      const other = (button + 1) % 2;
-      return { button, sb: button, bb: other, firstCard: other, firstPreflop: button, firstPostflop: other };
-    }
-    const left = (k) => (button + k) % n;
-    return { button, sb: left(1), bb: left(2), firstCard: left(1), firstPreflop: left(3), firstPostflop: left(1) };
+    const { sb, bb } = blindSeats(n, button);
+    const firstCard = (button + 1) % n;
+    return {
+      button, sb, bb, firstCard,
+      firstPreflop: getFirstToAct({ players: n, button }, 'preflop').seat,
+      firstPostflop: getFirstToAct({ players: n, button }, 'flop').seat,
+    };
   }
 
   /** Order in which seats receive their cards: the button always gets the last card. */
   const dealOrder = (n, button) => clockwise(n, positions(n, button).firstCard);
 
-  /** Order of action on a street, among the players still in the hand (folded players are skipped). */
+  /** Order of action on a street: from the first player to act (getFirstToAct), clockwise, active players only. */
   function actionOrder(n, button, street, active = range(n)) {
-    const p = positions(n, button);
-    return clockwise(n, street === 'preflop' ? p.firstPreflop : p.firstPostflop).filter((i) => active.includes(i));
+    const first = getFirstToAct({ players: n, button, active }, street).seat;
+    return first == null ? [] : clockwise(n, first).filter((i) => active.includes(i));
   }
 
   /** Next hand: the button moves one seat clockwise, the blinds follow. */
   const nextHand = (n, button) => positions(n, (button + 1) % n);
 
-  /** Where the dealer button sits between its owner and the next place clockwise (1 = on the owner, 0 = on the next place). */
-  const BUTTON_BETWEEN = 0.72;
+  /** Where the dealer button sits between its owner and the next place clockwise: halfway, clear of both places. */
+  const BUTTON_BETWEEN = 0.5;
 
   /**
    * Places around the table, as angles in degrees clockwise from the top.
    * The dealer sits at the top middle (0°); the players are spread evenly from the dealer's left, clockwise.
-   * The dealer button sits on the table edge between its owner and the next place clockwise (the small blind's side),
-   * closer to its owner — never in front of a player. Example: button of Player 1 between Player 1 and Player 2.
+   * The dealer button sits on the table edge halfway between its owner and the next place clockwise — never in front
+   * of a player. Its owner is the player just before it clockwise. Example: button between Player 1 and Player 2 = Player 1.
    */
   function tableLayout(n, button) {
     const step = 360 / (n + 1);
@@ -153,7 +196,8 @@
     return [...set].sort((a, b) => a - b).map(String);
   }
 
-  const seatBase = () => ({ status: null, bet: 0, cards: 'down', behind: null, chip: null, marked: false });
+  // folded: the player gave up the hand (shown COUCHÉ, no cards). Only active players (not folded) can act.
+  const seatBase = () => ({ status: null, bet: 0, cards: 'down', behind: null, chip: null, marked: false, folded: false });
 
   /** Converts the amounts of a situation into chip stacks. null when an amount cannot be shown. */
   function withStacks(q, blinds, random) {
@@ -201,8 +245,8 @@
       firstCard: () => pos.firstCard,
       lastCard: () => order[n - 1],
       nextCard: () => { const k = int(0, n - 2); target = order[k]; return order[k + 1]; },
-      firstPreflop: () => pos.firstPreflop,
-      firstPostflop: () => pos.firstPostflop,
+      firstPreflop: () => null, // set below from the table
+      firstPostflop: () => null,
       nextButton: () => next.button,
       nextSB: () => next.sb,
       nextBB: () => next.bb,
@@ -213,8 +257,21 @@
     const showBlinds = !asksBlinds && (stage === 1 || (stage === 2 && random() < 0.5));
     const blinds = pick(BLINDS.slice(0, 2), random);
     const seats = range(n).map(() => ({ ...seatBase(), cards: null }));
-    // Shown blinds are posted: their chips are in front of SB and BB.
-    if (showBlinds) { seats[pos.sb].bet = blinds.sb; seats[pos.bb].bet = blinds.bb; }
+    let street = null;
+    let firstToAct = answer;
+    if (type === 'firstPreflop' || type === 'firstPostflop') {
+      // A hand in progress: the active players hold their cards; after the flop some players may have folded.
+      street = type === 'firstPreflop' ? 'preflop' : 'flop';
+      seats.forEach((s) => { s.cards = 'down'; });
+      if (street === 'flop' && stage > 1 && n > 2) {
+        const folds = random() < 0.6 ? clockwise(n, (button + 1) % n).slice(0, int(1, n - 2)) : P.shuffle(range(n), random).slice(0, int(0, n - 2));
+        folds.forEach((i) => { seats[i].cards = null; seats[i].folded = true; });
+      }
+      const active = range(n).filter((i) => !seats[i].folded);
+      firstToAct = getFirstToAct({ players: n, button, active }, street).seat;
+    }
+    // Shown blinds are posted: their chips are in front of SB and BB (preflop only — after the flop they are in the pot).
+    if (showBlinds && street !== 'flop') { seats[pos.sb].bet = blinds.sb; seats[pos.bb].bet = blinds.bb; }
 
     return withStacks({
       kind: 'table',
@@ -224,8 +281,9 @@
       showBlinds,
       blinds: { sb: blinds.sb, bb: blinds.bb },
       seats,
+      street,
       target,
-      answer: String(answer),
+      answer: String(firstToAct),
       options: range(n).map(String),
       optionKind: 'player',
     }, blinds, random);
@@ -254,14 +312,18 @@
     const seats = range(n).map(() => ({ ...seatBase(), hole: deck.splice(0, 2) }));
     const q = { kind: 'flow', situation: type, headsUp: n === 2, button, blinds: { sb, bb }, board, seats, pot: 0, optionKind: 'action' };
 
-    const fold = (i, status = 'fold') => { seats[i].cards = null; seats[i].status = status; };
+    const fold = (i, status = 'fold') => { seats[i].cards = null; seats[i].folded = true; seats[i].status = status; };
     const inHand = () => range(n).filter((i) => seats[i].cards);
 
     /** Postflop, from stage 2: some players already folded on an earlier street (no cards, no status). */
     function earlierFolds(keep) {
       if (stage === 1) return;
+      // Often the players right after the button: the first active player is then further round the table.
+      if (random() < 0.5) {
+        for (const i of clockwise(n, (button + 1) % n).slice(0, int(1, n - 1))) if (inHand().length > keep) fold(i, null);
+      }
       for (const i of P.shuffle(range(n), random)) {
-        if (inHand().length > keep && random() < 0.3) fold(i, null);
+        if (inHand().length > keep && random() < 0.25) fold(i, null);
       }
     }
 
@@ -380,8 +442,11 @@
         });
         if (inHand().length < 2) return null;
         q.order = order;
-        q.acted = order.slice(0, acted);
-        q.answer = String(order[acted]);
+        q.acted = order.slice(0, acted).filter((i) => !seats[i].folded);
+        // The answer comes from the module rule, from what the table shows: active players and who already acted.
+        const next = getNextToAct({ players: n, button, active: inHand() }, street, q.acted).seat;
+        if (next !== order[acted]) return null;
+        q.answer = String(next);
         q.options = range(n).map(String);
         q.optionKind = 'player';
         break;
@@ -452,6 +517,7 @@
         const canFold = stage > 1 && inHand().length > 2 && !(i === pos.bb && paid === bb);
         if (canFold && random() < 0.25) {
           seats[i].cards = null;
+          seats[i].folded = true;
           seats[i].prior = blind;
         } else seats[i].prior = paid;
       });
@@ -462,7 +528,7 @@
     // ---- Actions ----------------------------------------------------------------
     const act = {
       check: (i) => { seats[i].status = 'check'; },
-      fold: (i) => { seats[i].cards = null; seats[i].status = 'fold'; },
+      fold: (i) => { seats[i].cards = null; seats[i].folded = true; seats[i].status = 'fold'; },
       call: (i) => { seats[i].bet = highest; seats[i].status = 'call'; },
       bet: (i, amount) => { seats[i].bet = amount; seats[i].status = 'bet'; highest = amount; highestSeat = i; },
       raise: (i, to) => { seats[i].bet = to; seats[i].status = 'raise'; highest = to; highestSeat = i; },
@@ -649,7 +715,7 @@
 
   DT.holdemDealer = {
     // rules
-    positions, dealOrder, actionOrder, nextHand, clockwise, tableLayout, BUTTON_BETWEEN, blindsShown,
+    positions, blindSeats, getFirstToAct, getNextToAct, dealOrder, actionOrder, nextHand, clockwise, tableLayout, BUTTON_BETWEEN, blindsShown,
     CHIP_VALUES, MAX_PER_STACK, MAX_PILES_ON_FELT, BLINDS, toStacks, stacksTotal, toCall, raiseSize, potAfterCollect, change,
     // generators
     STREETS, BOARD_COUNT, ACTIONS, BET_TYPES, TABLE_TYPES, FLOW_TYPES, CHIP_TYPES,

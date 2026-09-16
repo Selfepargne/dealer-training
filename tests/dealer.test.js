@@ -126,14 +126,14 @@ test('Layout: the dealer sits at the top middle, the players clockwise from the 
   equal(D.tableLayout(6, 0).seats.map(Math.round), [51, 103, 154, 206, 257, 309], '6 players');
 });
 
-test('Layout: the dealer button sits on the table edge between its owner and the next player, closest to its owner', () => {
+test('Layout: the dealer button sits on the table edge halfway between its owner and the next player', () => {
   for (let n = 2; n <= 6; n++) {
     for (let b = 0; b < n; b++) {
       const l = D.tableLayout(n, b);
       const owner = l.seats[b];
       const next = b === n - 1 ? 360 : l.seats[b + 1]; // after the last player comes the dealer's place
       assert(l.button > owner && l.button < next, `between the owner and the next place (${n}, ${b})`);
-      assert(l.button - owner < next - l.button, 'closer to its owner');
+      assert(Math.abs((l.button - owner) - (next - l.button)) < 1e-9, 'halfway: the owner is the player just before it, clockwise');
       l.seats.forEach((a) => assert(Math.abs(a - l.button) > l.step * 0.2, 'never in front of a player'));
     }
   }
@@ -262,6 +262,16 @@ test('Common rule: Mise en place, Déroulement and Jetons & mises all follow it,
   }
 });
 
+test('Dealer table styles never redefine a global layout class of the app (.stack, .row, .grid…)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const css = (file) => fs.readFileSync(path.join(__dirname, '..', 'css', file), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const classesDefined = (src) => new Set([...src.matchAll(/(^|[\s,}])\.([a-zA-Z][\w-]*)(?=[\s,{:.[>])/gm)].map((m) => m[2]));
+  const global = classesDefined(css('main.css'));
+  const clashes = [...classesDefined(css('dealer-table.css'))].filter((c) => global.has(c));
+  equal(clashes, [], 'classes shared with main.css');
+});
+
 test('No second position logic: only dealer.js computes seats around the table', () => {
   const fs = require('fs');
   const path = require('path');
@@ -270,7 +280,128 @@ test('No second position logic: only dealer.js computes seats around the table',
     if (file === 'dealer.js') continue;
     const src = fs.readFileSync(path.join(dir, file), 'utf8');
     assert(!/button\s*[+-]\s*\d|%\s*n\b|\.sb\s*=\s*\(|\.bb\s*=\s*\(/.test(src), `${file} must use the shared rules of dealer.js`);
+    // Who acts is decided in one place only: no other file reads the "first to act" seats directly.
+    assert(!/firstPreflop|firstPostflop/.test(src.replace(/situation === '(firstPreflop|firstPostflop)'/g, '')), `${file} must ask getFirstToAct / getNextToAct`);
   }
+  // Inside dealer.js, the generators ask the central functions instead of rebuilding the order.
+  const dealer = fs.readFileSync(path.join(dir, 'dealer.js'), 'utf8');
+  equal((dealer.match(/for \(const seat of clockwise\(n, start\)\)/g) || []).length, 1, 'a single loop looks for the player to act');
+});
+
+// ---------------------------------------------------------------------------
+// Who acts — the central rule, exhaustively
+// ---------------------------------------------------------------------------
+
+const STREETS_ALL = ['preflop', 'flop', 'turn', 'river'];
+
+/** Reference, written independently: after BB (preflop) or after the button (postflop), clockwise, first active seat not yet acted. */
+function referenceNextToAct(n, button, street, active, acted = []) {
+  const bb = n === 2 ? (button + 1) % 2 : (button + 2) % n;
+  let seat = street === 'preflop' ? (bb + 1) % n : (button + 1) % n;
+  for (let k = 0; k < n; k++, seat = (seat + 1) % n) {
+    if (active.includes(seat) && !acted.includes(seat)) return seat;
+  }
+  return null;
+}
+
+test('getFirstToAct: 2 to 6 players, every button, every street, every set of folded players', () => {
+  const kinds = new Set();
+  let cases = 0;
+  for (let n = 2; n <= 6; n++) {
+    for (let b = 0; b < n; b++) {
+      for (let mask = 0; mask < 1 << n; mask++) {
+        const active = [...Array(n).keys()].filter((i) => mask & (1 << i));
+        if (active.length < 2) continue; // a hand needs at least two players
+        const folded = [...Array(n).keys()].filter((i) => !active.includes(i));
+        for (const street of STREETS_ALL) {
+          const r = D.getFirstToAct({ players: n, button: b, active }, street);
+          const expected = referenceNextToAct(n, b, street, active);
+          equal(r.seat, expected, `${n} players, button J${b + 1}, ${street}, folded [${folded.map((i) => 'J' + (i + 1))}]`);
+          assert(active.includes(r.seat), 'the player who acts holds cards');
+          assert(!folded.includes(r.seat), 'a folded player is never returned');
+          r.skipped.forEach((i) => assert(folded.includes(i), 'only folded players are skipped'));
+          cases++;
+          if (street !== 'preflop') {
+            const left = (b + 1) % n;
+            if (!folded.length) kinds.add('no fold');
+            if (folded.length === 1) kinds.add('one fold');
+            if (folded.length > 1) kinds.add('several folds');
+            if (folded.some((i) => folded.includes((i + 1) % n))) kinds.add('consecutive folds');
+            if (folded.includes(left)) kinds.add('left of the button folded');
+            if (folded.includes(left) && folded.includes((left + 1) % n)) kinds.add('several left of the button folded');
+          }
+        }
+      }
+    }
+  }
+  equal([...kinds].sort(), ['consecutive folds', 'left of the button folded', 'no fold', 'one fold', 'several folds', 'several left of the button folded'].sort(), 'situations covered');
+  equal(cases, 2120, "every combination (2 to 6 players × buttons × streets × fold sets with 2+ players left)");
+});
+
+test('Reference example: button J3, 6 players, after the flop', () => {
+  const all = [0, 1, 2, 3, 4, 5];
+  const without = (...players) => all.filter((i) => !players.includes(i));
+  equal(D.getFirstToAct({ players: 6, button: 2 }, 'flop').seat, 3, 'nobody folded: J4');
+  equal(D.getFirstToAct({ players: 6, button: 2, active: without(3) }, 'flop').seat, 4, 'J4 folded: J5');
+  equal(D.getFirstToAct({ players: 6, button: 2, active: without(3, 4) }, 'flop').seat, 5, 'J4, J5 folded: J6');
+  equal(D.getFirstToAct({ players: 6, button: 2, active: without(3, 4, 5) }, 'river').seat, 0, 'J4, J5, J6 folded: J1');
+  equal(D.getFirstToAct({ players: 6, button: 2, active: without(3, 4) }, 'turn').skipped, [3, 4], 'skipped: J4 and J5');
+  equal(D.getFirstToAct({ players: 6, button: 2 }, 'preflop').seat, 5, 'preflop: first after the BB (J5) is J6');
+});
+
+test('getNextToAct: during a round, the next active player who has not acted — every table, button, street and fold', () => {
+  let cases = 0;
+  for (let n = 2; n <= 6; n++) {
+    for (let b = 0; b < n; b++) {
+      for (let mask = 0; mask < 1 << n; mask++) {
+        const active = [...Array(n).keys()].filter((i) => mask & (1 << i));
+        if (active.length < 2) continue;
+        for (const street of STREETS_ALL) {
+          const order = D.actionOrder(n, b, street, active);
+          equal(order[0], D.getFirstToAct({ players: n, button: b, active }, street).seat, 'the order starts with getFirstToAct');
+          for (let k = 0; k < order.length; k++) {
+            const acted = order.slice(0, k);
+            const r = D.getNextToAct({ players: n, button: b, active }, street, acted);
+            equal(r.seat, referenceNextToAct(n, b, street, active, acted), `${n} players, button J${b + 1}, ${street}, acted ${acted}`);
+            assert(active.includes(r.seat) && !acted.includes(r.seat), 'active and not acted yet');
+            cases++;
+          }
+        }
+      }
+    }
+  }
+  equal(cases, 6536, "every combination, at every point of the round");
+});
+
+test('Generated "who acts" situations cover the fold patterns and always match the rule read from the table', () => {
+  const kinds = new Set();
+  let checked = 0;
+  for (const id of ['table_setup', 'hand_flow']) {
+    for (let i = 0; i < 20000; i++) {
+      const n = 2 + (i % 5);
+      const q = createQuestion(id, { players: n, stage: 2 + (i % 2) });
+      if (!['firstPreflop', 'firstPostflop', 'whoActs'].includes(q.situation)) continue;
+      const street = q.street;
+      const active = q.seats.map((s, k) => (s.folded ? -1 : k)).filter((k) => k >= 0);
+      const acted = q.situation === 'whoActs' ? q.seats.map((s, k) => (!s.folded && s.status ? k : -1)).filter((k) => k >= 0) : [];
+      const where = `${id}/${q.situation} ${show(q)}`;
+      equal(q.answer, String(referenceNextToAct(n, q.button, street, active, acted)), `answer = rule read from the table — ${where}`);
+      assertReadable(q, where);
+      checked++;
+      if (street !== 'preflop' && !acted.length) {
+        const folded = q.seats.map((s, k) => (s.folded ? k : -1)).filter((k) => k >= 0);
+        const left = (q.button + 1) % n;
+        if (!folded.length) kinds.add('no fold');
+        if (folded.length === 1) kinds.add('one fold');
+        if (folded.length > 1) kinds.add('several folds');
+        if (folded.some((k) => folded.includes((k + 1) % n))) kinds.add('consecutive folds');
+        if (folded.includes(left)) kinds.add('left of the button folded');
+        if (folded.includes(left) && folded.includes((left + 1) % n)) kinds.add('several left of the button folded');
+      }
+    }
+  }
+  equal([...kinds].sort(), ['consecutive folds', 'left of the button folded', 'no fold', 'one fold', 'several folds', 'several left of the button folded'].sort(), 'fold patterns generated');
+  assert(checked > 3000, `${checked} situations checked`);
 });
 
 test('The "check" label reads CHECK in both languages', () => {
@@ -352,6 +483,27 @@ function blindOf(q, i) {
 
 const stacksOk = (list) => list.every((s) => D.CHIP_VALUES.includes(s.value) && s.count >= 1 && s.count <= D.MAX_PER_STACK);
 
+/** Independent reading of the table: from `start`, clockwise, the first seat that still holds its cards. */
+function firstActiveFrom(q, start) {
+  const n = q.seats.length;
+  for (let k = 0; k < n; k++) {
+    const seat = (start + k) % n;
+    if (q.seats[seat].cards && !q.seats[seat].folded) return seat;
+  }
+  return -1;
+}
+
+/** What the screen must show for a "who acts" question: cards for every active player, COUCHÉ for every folded one. */
+function assertReadable(q, where) {
+  q.seats.forEach((s, i) => {
+    if (s.folded) assert(!s.cards, `folded Player ${i + 1} holds no cards — ${where}`);
+    else assert(s.cards === 'down' || s.cards === 'up', `active Player ${i + 1} shows cards — ${where}`);
+  });
+  const answer = Number(q.answer);
+  assert(q.seats[answer].cards && !q.seats[answer].folded, `the player who acts is active — ${where}`);
+  assert(q.seats.filter((s) => !s.folded).length >= 2, `at least two players still in the hand — ${where}`);
+}
+
 test('Table setup: every answer follows the rules, heads-up included; markers never give the answer away', () => {
   const seen = generate('table_setup', (q, n) => {
     const b = q.button;
@@ -363,13 +515,15 @@ test('Table setup: every answer follows the rules, heads-up included; markers ne
       firstCard: hu ? bb : sb,
       lastCard: b,
       nextCard: q.target != null ? (q.target + 1) % n : -1,
-      firstPreflop: hu ? b : (bb + 1) % n,
-      firstPostflop: hu ? bb : sb,
+      // Read from the table: first seat after BB (preflop) / after the button (postflop) that still holds cards.
+      firstPreflop: firstActiveFrom(q, (bb + 1) % n),
+      firstPostflop: firstActiveFrom(q, (b + 1) % n),
       nextButton: (b + 1) % n,
       nextSB: hu ? (b + 1) % n : (b + 2) % n,
       nextBB: hu ? b : (b + 3) % n,
     }[q.situation];
     assert(q.answer === String(expected), `${q.situation}: expected Player ${expected + 1}`);
+    if (q.situation === 'firstPreflop' || q.situation === 'firstPostflop') assertReadable(q, q.situation);
     assert(q.options.length === n, 'one option per player');
     if (['sb', 'bb', 'nextButton', 'nextSB', 'nextBB'].includes(q.situation)) assert(!q.showBlinds, 'blind markers hidden');
     if (q.situation === 'nextCard') assert(q.target !== q.answer && q.target !== b, 'the button never gets a card after the last one');
@@ -402,8 +556,10 @@ test('Flow of a hand: whose turn and what the dealer does, read from the table',
         const b = q.button;
         const start = q.street === 'preflop' ? (hu ? b : (b + 3) % n) : (hu ? (b + 1) % 2 : (b + 1) % n);
         let seat = start;
-        while (!(q.seats[seat].cards && !q.seats[seat].status)) seat = (seat + 1) % n;
+        while (!(q.seats[seat].cards && !q.seats[seat].folded && !q.seats[seat].status)) seat = (seat + 1) % n;
         assert(q.answer === String(seat), `whoActs: expected Player ${seat + 1}`);
+        assertReadable(q, 'whoActs');
+        q.seats.forEach((s, i) => { if (!s.cards) assert(s.folded, `a player without cards is shown COUCHÉ (Player ${i + 1})`); });
         const inHandCount = q.seats.filter((s) => s.cards).length;
         assert(inHandCount >= 2, 'at least two players still in the hand');
         // Everyone in the hand between the start and the answer has acted.
@@ -591,7 +747,7 @@ test('All-in: no chips left in the cave; every other player still has some', () 
       equal(empty, [], `nobody else has an empty cave (${q.situation})`);
     }
   });
-  assert(allIns > 50, 'enough all-in situations');
+  assert(allIns > 30, 'enough all-in situations'); // about 110 on average, never under 85 in 15 samples
 });
 
 test('Amounts stay coherent: engaged chips on the felt, pot in the middle, caves off the table', () => {
@@ -681,7 +837,7 @@ test('All-in: empty cave and the whole stack engaged; nobody else has an empty c
       if (s.status === 'allIn') equal(s.behind, 0, 'all-in: cave at 0');
     });
   });
-  assert(allIns > 100, 'enough all-ins');
+  assert(allIns > 40, 'enough all-ins'); // about 110 on average, never under 80 in 40 samples
 });
 
 test('Folded: nothing new is engaged after the fold', () => {

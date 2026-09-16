@@ -32,6 +32,7 @@
         blackjackPayout: '3:2',
         flashExposureMs: 1000,
         holdemPlayers: 'auto', // Hold'em table size: 'auto' or 2 to 6
+        skillFilters: {}, // module page: level shown per module ('beginner' … 'expert' or 'all')
         keyboardHints: true,
         motion: 'system', // 'system' | 'reduced' | 'full'
       },

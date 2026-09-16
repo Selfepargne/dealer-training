@@ -160,22 +160,56 @@ test("Hold'em — table setup: small blind at 6 players, and the heads-up rule",
   equal(ex.why[0], 'Bouton : Joueur 3', 'button');
   equal(ex.why[1], 'Petite blinde : Joueur 4 · Grosse blinde : Joueur 5', 'blinds');
 
-  ex = HOLDEM.explain({ ...q, situation: 'firstPostflop', button: 0, seats: seats(2), headsUp: true, answer: '1' });
-  equal(ex.short, 'En tête-à-tête, la grosse blinde parle en premier après le flop.', 'heads-up short');
-  equal(ex.why[2], 'Ordre de parole : Joueur 2 → Joueur 1', 'order');
+  // Heads-up after the flop: the big blind (after the button) acts first — same central rule.
+  ex = HOLDEM.explain({ ...q, situation: 'firstPostflop', street: 'flop', button: 0, seats: seats(2), headsUp: true, answer: '1' });
+  equal(ex.short, "Après le flop, l'action commence au premier joueur encore actif à gauche du bouton. Joueur 2 est encore actif : il parle en premier.", 'heads-up short');
+  equal(ex.why[1], 'Ordre de parole : Joueur 2 → Joueur 1', 'order');
+
+  // Heads-up before the flop: after the big blind comes the button.
+  ex = HOLDEM.explain({ ...q, situation: 'firstPreflop', street: 'preflop', button: 0, seats: seats(2), headsUp: true, answer: '0' });
+  equal(ex.headline, 'Joueur 1', 'heads-up preflop: the button');
+  equal(ex.why[2], 'En tête-à-tête, le bouton est la petite blinde : après la grosse blinde vient le bouton.', 'heads-up note');
 });
 
-test("Hold'em — flow: whose turn, with folded players skipped", () => {
-  const s = seats(5);
-  s[4] = { ...s[4], cards: null, status: 'fold' };
-  s[0] = { ...s[0], status: 'check' };
-  const q = { kind: 'flow', situation: 'whoActs', street: 'flop', button: 3, seats: s, order: [0, 1, 2, 3], acted: [0], answer: '1', optionKind: 'player' };
+const folded = (s) => ({ ...s, cards: null, folded: true });
+
+test("Hold'em — who acts first after the flop: button J3, J4 folded → J5 (the reference example)", () => {
+  const s = seats(6);
+  s[3] = folded(s[3]);
+  const q = { kind: 'table', situation: 'firstPostflop', street: 'flop', button: 2, seats: s, headsUp: false, answer: '4', optionKind: 'player' };
   const ex = HOLDEM.explain(q);
-  equal(ex.headline, 'Joueur 2', 'headline');
-  equal(ex.short, 'Après le flop, la parole part du premier joueur actif à gauche du bouton.', 'short');
-  equal(ex.why[0], 'Ordre de parole : Joueur 1 → Joueur 2 → Joueur 3 → Joueur 4', 'order');
-  equal(ex.why[1], 'Ont déjà parlé : Joueur 1', 'acted');
-  equal(ex.why[2], 'Les joueurs sans cartes sont sautés.', 'skipped');
+  equal(ex.headline, 'Joueur 5', 'headline');
+  equal(ex.short, "Après le flop, l'action commence au premier joueur encore actif à gauche du bouton. Joueur 4 est couché, Joueur 5 est donc le premier joueur actif : il parle en premier.", 'short');
+  equal(ex.why[0], 'Bouton : Joueur 3', 'button');
+  equal(ex.why[1], 'Ordre de parole : Joueur 5 → Joueur 6 → Joueur 1 → Joueur 2 → Joueur 3', 'order of the active players');
+  equal(ex.why[2], 'Couchés : Joueur 4', 'folded');
+  equal(ex.why[3].result, 'Réponse : Joueur 5', 'result');
+
+  // J4, J5 and J6 folded → J1
+  s[4] = folded(s[4]);
+  s[5] = folded(s[5]);
+  const many = HOLDEM.explain({ ...q, seats: s, answer: '0' });
+  equal(many.short, "Après le flop, l'action commence au premier joueur encore actif à gauche du bouton. Joueur 4, Joueur 5 et Joueur 6 sont couchés, Joueur 1 est donc le premier joueur actif : il parle en premier.", 'several folds');
+});
+
+test("Hold'em — flow: whose turn during the round, folded players skipped", () => {
+  const s = seats(5);
+  s[4] = folded({ ...s[4], status: 'fold' });
+  s[0] = { ...s[0], status: 'check' };
+  s[1] = folded({ ...s[1], status: 'fold' });
+  const q = { kind: 'flow', situation: 'whoActs', street: 'flop', button: 3, seats: s, order: [4, 0, 1, 2, 3], acted: [0], answer: '2', optionKind: 'player' };
+  const ex = HOLDEM.explain(q);
+  equal(ex.headline, 'Joueur 3', 'headline');
+  equal(ex.short, "L'action continue dans le sens des aiguilles d'une montre, parmi les joueurs encore actifs. Joueur 2 est couché, Joueur 3 est donc le prochain joueur actif qui n'a pas encore parlé : c'est à lui.", 'short');
+  equal(ex.why[1], 'Ordre de parole : Joueur 1 → Joueur 3 → Joueur 4', 'order of the active players');
+  equal(ex.why[2], 'Couchés : Joueur 2 et Joueur 5', 'folded');
+  equal(ex.why[3], 'Ont déjà parlé : Joueur 1', 'acted');
+
+  // English
+  window.DT.i18n.setLanguage('en');
+  const en = HOLDEM.explain(q);
+  equal(en.short, "Action goes on clockwise, among the players still in the hand. Player 2 has folded, so Player 3 is the next active player who has not acted yet: it is Player 3's turn.", 'English');
+  window.DT.i18n.setLanguage('fr');
 });
 
 test("Hold'em — flow: what the dealer does now", () => {

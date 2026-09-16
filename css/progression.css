@@ -75,7 +75,7 @@
 .tier-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-2); }
 .tier-step { display: flex; flex-direction: column; gap: var(--s-2); }
 .tier-step__bar { height: 3px; border-radius: 3px; background: var(--line-2); }
-.tier-step__name { font-size: var(--fs-micro); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); }
+.tier-step__name { min-width: 0; font-size: 0.5625rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); overflow-wrap: anywhere; }
 .tier-step.is-done .tier-step__bar { background: var(--accent-lo); }
 .tier-step.is-done .tier-step__name { color: var(--text-2); }
 .tier-step.is-current .tier-step__bar { background: var(--accent); }

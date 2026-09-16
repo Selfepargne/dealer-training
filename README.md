@@ -17,6 +17,7 @@ node tests/blackjack-engine.test.js  moteur Blackjack (toutes les mains jusqu'à
 node tests/blackjack-skills.test.js  compétences Blackjack jouables : questions valides
 node tests/explanations.test.js      phrases courtes et « Pourquoi ? »
 node tests/progression.test.js       XP, erreurs, maîtrise, types de session, recommandations
+node tests/module-filter.test.js     page module : filtre par niveau, mémorisation, FR / EN
 node tests/i18n.test.js              textes FR / EN complets
 ```
 

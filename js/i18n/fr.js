@@ -464,6 +464,9 @@ window.DT.translations.fr = {
     masteredCount: '{n} / {total} maîtrisées',
     states: { new: 'Non commencée', learning: 'En apprentissage', progressing: 'En progression', almost: 'Presque maîtrisée', mastered: 'Maîtrisée' },
     figures: { exercises: 'Exercices', accuracy: 'Précision', speed: 'Vitesse' },
+    filterAll: 'Tout afficher',
+    filterLabel: 'Niveau affiché',
+    filterCount: '{n} compétences',
   },
 
   mistakes: {
@@ -695,14 +698,6 @@ window.DT.translations.fr = {
           normal: "On distribue une carte à la fois, dans le sens des aiguilles d'une montre.",
           headsUp: "On distribue une carte à la fois, dans le sens des aiguilles d'une montre.",
         },
-        firstPreflop: {
-          normal: 'Avant le flop, le joueur à gauche de la grosse blinde parle en premier.',
-          headsUp: 'En tête-à-tête, le bouton parle en premier avant le flop.',
-        },
-        firstPostflop: {
-          normal: 'Après le flop, le premier joueur à gauche du bouton parle en premier.',
-          headsUp: 'En tête-à-tête, la grosse blinde parle en premier après le flop.',
-        },
         nextButton: {
           normal: "Le bouton avance d'une place, dans le sens des aiguilles d'une montre.",
           headsUp: "Le bouton avance d'une place, dans le sens des aiguilles d'une montre.",
@@ -729,12 +724,6 @@ window.DT.translations.fr = {
           folds: 'Tous les autres joueurs se sont couchés : le pot va au dernier joueur.',
           winner: 'Le gagnant est annoncé : le croupier lui pousse le pot.',
         },
-        whoActs: {
-          preflop: "Avant le flop, la parole part de la gauche de la grosse blinde et tourne dans le sens des aiguilles d'une montre.",
-          postflop: 'Après le flop, la parole part du premier joueur actif à gauche du bouton.',
-          preflopHeadsUp: 'En tête-à-tête, le bouton parle en premier avant le flop.',
-          postflopHeadsUp: 'En tête-à-tête, la grosse blinde parle en premier après le flop.',
-        },
       },
       chips: {
         stack: 'Additionnez chaque pile : valeur × nombre de jetons.',
@@ -758,7 +747,6 @@ window.DT.translations.fr = {
       actionOrder: 'Ordre de parole : {order}',
       nextHand: 'Main suivante — bouton : {button} · SB : {sb} · BB : {bb}',
       acted: 'Ont déjà parlé : {players}',
-      foldedSkipped: 'Les joueurs sans cartes sont sautés.',
       streets: 'Préflop : 0 carte · Flop : 3 · Turn : 4 · River : 5.',
       sequence: 'À chaque tour : enchères, mises ramassées, carte suivante. Après la river : abattage, gagnant, pot.',
       stacks: '{label} : {stacks}',
@@ -772,10 +760,24 @@ window.DT.translations.fr = {
       targetBet: '{player} a mis {amount} devant lui.',
       answer: 'Réponse : {answer}',
       caveNotInPot: 'Les jetons de la cave ne sont pas engagés : ils ne comptent jamais dans le pot.',
+      bigBlind: 'Grosse blinde : {player}',
+      foldedPlayers: 'Couchés : {players}',
     },
     dealerSeat: 'Croupier',
     buttonOf: 'Bouton dealer : {player}',
     cave: 'Cave',
     caveOf: 'Cave de {player}, hors jeu : {amount}',
+    turn: {
+      preflopStart: "Avant le flop, l'action commence au premier joueur encore actif après la grosse blinde.",
+      postflopStart: "Après le flop, l'action commence au premier joueur encore actif à gauche du bouton.",
+      continues: "L'action continue dans le sens des aiguilles d'une montre, parmi les joueurs encore actifs.",
+      firstNoFold: '{player} est encore actif : il parle en premier.',
+      firstOneFold: '{folded} est couché, {player} est donc le premier joueur actif : il parle en premier.',
+      firstManyFolds: '{folded} sont couchés, {player} est donc le premier joueur actif : il parle en premier.',
+      nextNoFold: "{player} est le prochain joueur actif qui n'a pas encore parlé : c'est à lui.",
+      nextOneFold: "{folded} est couché, {player} est donc le prochain joueur actif qui n'a pas encore parlé : c'est à lui.",
+      nextManyFolds: "{folded} sont couchés, {player} est donc le prochain joueur actif qui n'a pas encore parlé : c'est à lui.",
+      headsUpPreflop: 'En tête-à-tête, le bouton est la petite blinde : après la grosse blinde vient le bouton.',
+    },
   },
 };

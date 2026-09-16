@@ -42,7 +42,7 @@
 
   function render({ data }) {
     const t = DT.i18n.t;
-    return h('div', { class: 'view stack stack-4' },
+    return h('div', { class: 'view stack stack-5' },
       PageHeader({ eyebrow: t('nav.challenges'), title: t('challenges.title'), lead: t('challenges.lead') }),
       daily(data),
       h('div', { class: 'grid stagger' }, CHALLENGES.map((c) => h('div', { class: 'span-3' }, card(c)))),

@@ -117,6 +117,45 @@
     return list.find((s) => !s.mastered) || list[list.length - 1];
   }
 
+  // ---------------------------------------------------------------------------
+  // Skill list filter (module page): presentation only — no statistic is touched
+  // ---------------------------------------------------------------------------
+
+  /** Modules whose skill list can be filtered by level. */
+  const FILTERED_PATHS = ['holdem'];
+  const ALL_LEVELS = 'all';
+
+  /** The filters offered: every level of the path, then "all". */
+  const skillFilters = (moduleId) => [...PATHS[moduleId].LEVELS, ALL_LEVELS];
+
+  /** Default: the level of the skill to work on now (a new profile starts at the first level). */
+  function defaultSkillFilter(data, moduleId) {
+    const next = nextSkill(data, moduleId);
+    return next ? next.skill.level : PATHS[moduleId].LEVELS[0];
+  }
+
+  /** The filter to show: the one the user chose last, if still valid, otherwise the default. */
+  function skillFilter(data, moduleId) {
+    const saved = data.settings.skillFilters && data.settings.skillFilters[moduleId];
+    return skillFilters(moduleId).includes(saved) ? saved : defaultSkillFilter(data, moduleId);
+  }
+
+  /** Remembers the chosen filter (saved with the rest of the data, in localStorage). */
+  function setSkillFilter(data, moduleId, filter) {
+    if (!skillFilters(moduleId).includes(filter)) return false;
+    if (!data.settings.skillFilters) data.settings.skillFilters = {};
+    data.settings.skillFilters[moduleId] = filter;
+    return true;
+  }
+
+  /** The levels to display for a filter, each with its skills: [{ level, skills: [skillStatus] }] */
+  function skillsByLevel(data, moduleId, filter = ALL_LEVELS) {
+    const list = skillList(data, moduleId);
+    return PATHS[moduleId].LEVELS
+      .filter((level) => filter === ALL_LEVELS || level === filter)
+      .map((level) => ({ level, skills: list.filter((s) => s.skill.level === level) }));
+  }
+
   /** Mistakes per skill, most frequent first: [{ skill, count }] */
   function mistakesBySkill(data, moduleId) {
     return skillList(data, moduleId)
@@ -492,6 +531,13 @@
     nextSkill,
     mistakesBySkill,
     sessionPlan,
+    FILTERED_PATHS,
+    ALL_LEVELS,
+    skillFilters,
+    defaultSkillFilter,
+    skillFilter,
+    setSkillFilter,
+    skillsByLevel,
     sessionReport,
     recordAnswer,
     recordSession,

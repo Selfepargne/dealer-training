@@ -37,22 +37,71 @@
         figure(t('skills.figures.speed'), s.avgMs != null ? `${fmt.seconds(s.avgMs, 1)} s` : fmt.DASH)));
   }
 
+  /**
+   * Level tabs: Beginner · Intermediate · Advanced · Expert · Show all.
+   * Presentation only — the choice is remembered in the saved data (settings.skillFilters).
+   */
+  function levelTabs(moduleId, data, active) {
+    const t = DT.i18n.t;
+    const filters = progression.skillFilters(moduleId);
+    const select = (value) => {
+      if (value === active) return;
+      DT.core.state.update((d) => progression.setSkillFilter(d, moduleId, value)); // the page redraws itself
+      requestAnimationFrame(() => {
+        const tab = document.querySelector(`.level-tab[data-filter="${value}"]`);
+        if (tab) tab.focus({ preventScroll: true });
+      });
+    };
+    const tabs = filters.map((value) => {
+      const count = value === progression.ALL_LEVELS ? null : progression.skillsByLevel(data, moduleId, value)[0].skills.length;
+      return h('button', {
+        type: 'button',
+        role: 'tab',
+        class: 'level-tab',
+        id: `level-tab-${value}`,
+        dataset: { filter: value },
+        'aria-selected': String(value === active),
+        'aria-controls': 'level-panel',
+        tabindex: value === active ? '0' : '-1',
+        onClick: () => select(value),
+      },
+      h('span', { class: 'level-tab__name' }, value === progression.ALL_LEVELS ? t('skills.filterAll') : t(`tiers.${value}`)),
+      count != null && h('span', { class: 'level-tab__count num', 'aria-label': t('skills.filterCount', { n: count }) }, count));
+    });
+    const list = h('div', { class: 'level-tabs', role: 'tablist', 'aria-label': t('skills.filterLabel') }, tabs);
+    list.addEventListener('keydown', (e) => {
+      const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      if (!step) return;
+      e.preventDefault();
+      select(filters[(filters.indexOf(active) + step + filters.length) % filters.length]);
+    });
+    return list;
+  }
+
   function skillsPanel(moduleId, data) {
     const t = DT.i18n.t;
     const path = progression.PATHS[moduleId];
-    const list = progression.skillList(data, moduleId);
+    const filtered = progression.FILTERED_PATHS.includes(moduleId);
+    const filter = filtered ? progression.skillFilter(data, moduleId) : progression.ALL_LEVELS;
+    const single = filter !== progression.ALL_LEVELS;
+
+    const levels = progression.skillsByLevel(data, moduleId, filter).map(({ level, skills }) => {
+      const done = skills.filter((s) => s.mastered).length;
+      const count = h('span', { class: 'faint small num' }, t('skills.masteredCount', { n: done, total: skills.length }));
+      return h('section', { class: 'skill-level' },
+        // One level shown: the tab already names it, only the mastered count remains.
+        h('div', { class: `skill-level__head${single ? ' skill-level__head--count' : ''}` },
+          !single && h('h3', { class: 'skill-level__title' }, t(`tiers.${level}`)),
+          count),
+        h('div', { class: 'skill-grid' }, skills.map((s) => skillCard(moduleId, s))));
+    });
 
     return Panel(
-      { eyebrow: t('skills.eyebrow'), title: t('skills.title'), description: t('skills.desc', { n: path.MASTERY.exercises }) },
-      path.LEVELS.map((level) => {
-        const inLevel = list.filter((s) => s.skill.level === level);
-        const done = inLevel.filter((s) => s.mastered).length;
-        return h('section', { class: 'skill-level' },
-          h('div', { class: 'skill-level__head' },
-            h('h3', { class: 'skill-level__title' }, t(`tiers.${level}`)),
-            h('span', { class: 'faint small num' }, t('skills.masteredCount', { n: done, total: inLevel.length }))),
-          h('div', { class: 'skill-grid' }, inLevel.map((s) => skillCard(moduleId, s))));
-      }));
+      { className: 'skills-panel', eyebrow: t('skills.eyebrow'), title: t('skills.title'), description: t('skills.desc', { n: path.MASTERY.exercises }) },
+      filtered && levelTabs(moduleId, data, filter),
+      filtered
+        ? h('div', { class: 'level-panel', id: 'level-panel', role: 'tabpanel', 'aria-labelledby': `level-tab-${filter}` }, levels)
+        : levels);
   }
 
   /** The four session types: path (with Practice / Speed), a chosen skill (the cards), my mistakes, challenge. */
@@ -169,7 +218,7 @@
       return h('div', { class: 'view' }, header,
         h('div', { class: 'grid' },
           h('div', { class: 'span-7' }, skillsPanel(m.id, data)),
-          h('div', { class: 'span-5 stack stack-4 order-first-narrow' },
+          h('div', { class: 'span-5 stack stack-5 order-first-narrow' },
             nextPanel(m.id, data),
             mistakesPanel(m.id, data),
             tiers(status))));
@@ -178,7 +227,7 @@
     const status = m.skill ? progression.tierStatus(data, m.id) : null;
     return h('div', { class: 'view' }, header,
       h('div', { class: 'grid' },
-        h('div', { class: 'span-7 stack stack-4' }, status && metrics(status), status && tiers(status)),
+        h('div', { class: 'span-7 stack stack-5' }, status && metrics(status), status && tiers(status)),
         h('div', { class: 'span-5 order-first-narrow' }, soon(m))));
   }
 

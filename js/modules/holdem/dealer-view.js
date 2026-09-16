@@ -24,12 +24,12 @@
     return h('div', { class: `bet-stacks${small ? ' bet-stacks--small' : ''}` },
       list.map((s) =>
         h('span', {
-          class: `stack chip--d${s.value}`,
+          class: `pile chip--d${s.value}`,
           role: 'img',
           'aria-label': t('chips.stack', { count: s.count, value: s.value }),
         },
-        h('span', { class: 'stack__discs', 'aria-hidden': 'true' }, Array.from({ length: s.count }, () => h('span', { class: 'stack__disc' }))),
-        showValues && !small && h('span', { class: 'stack__value', 'aria-hidden': 'true' }, s.value))));
+        h('span', { class: 'pile__discs', 'aria-hidden': 'true' }, Array.from({ length: s.count }, () => h('span', { class: 'pile__disc' }))),
+        showValues && !small && h('span', { class: 'pile__value', 'aria-hidden': 'true' }, s.value))));
   }
 
   /** Position on an ellipse around the centre of the table: CSS turns sin/cos into left/top with its own radii. */
@@ -51,21 +51,22 @@
   function seat(q, i, angle) {
     const s = q.seats[i];
     const hideStatus = q.hideStatus || (q.kind === 'chips' && q.situation === 'action' && q.target === i);
-    const status = s.marked ? `✓ ${t('holdem.winner')}` : !hideStatus && s.status ? t(`dealer.status.${s.status}`) : '';
+    // A folded player is always shown COUCHÉ (public information), whatever the question.
+    const status = s.marked ? `✓ ${t('holdem.winner')}` : s.folded ? t('dealer.status.fold') : !hideStatus && s.status ? t(`dealer.status.${s.status}`) : '';
     const cards = s.cards === 'up'
       ? s.hole.map((code) => Card({ code, size: 'sm' }))
       : s.cards === 'down' ? [Card({ code: 'As', faceDown: true, size: 'sm' }), Card({ code: 'As', faceDown: true, size: 'sm' })] : [];
 
     return h('div', {
       // Upper half of the table: the cave goes on the outer side of the place, away from the felt and the bets.
-      class: `seat seat--dealer on-ring${Math.cos((angle * Math.PI) / 180) > 0.2 ? ' seat--upper' : ''}${s.cards || q.kind === 'table' ? '' : ' is-out'}${s.marked ? ' is-winner' : ''}`,
+      class: `seat seat--dealer on-ring${Math.cos((angle * Math.PI) / 180) > 0.2 ? ' seat--upper' : ''}${s.folded ? ' is-folded' : ''}${s.marked ? ' is-winner' : ''}`,
       dataset: { player: i },
       style: at(angle),
     },
     h('span', { class: 'seat__label' }, playerName(i)),
     h('div', { class: 'seat__tags' },
       blindTags(q, i),
-      h('span', { class: `tag tag--status seat__status${s.status === 'fold' ? ' is-fold' : ''}` }, status)),
+      h('span', { class: `tag tag--status seat__status${s.folded ? ' tag--folded' : ''}` }, status)),
     cards.length > 0 && h('div', { class: 'card-row seat__cards' }, cards),
     cave(q, i),
     q.kind !== 'chips' && betSpot(q, i, 'in-seat'));
@@ -209,7 +210,43 @@
   const breakdown = (list) => list.map((s) => `${s.count} × ${money(s.value)}`).join(' + ');
   const sequence = (seats) => seats.map(playerName).join(' → ');
 
+  /** "Joueur 4, Joueur 5 et Joueur 6" */
+  function names(seats) {
+    const list = seats.map(playerName);
+    return list.length > 1 ? `${list.slice(0, -1).join(', ')} ${t('common.and')} ${list[list.length - 1]}` : list[0];
+  }
+
+  /**
+   * Who acts — explained from the table actually shown, with the module rule (getNextToAct):
+   * where the action starts, the folded players passed over, the player who acts.
+   */
+  function explainTurn(q, acted) {
+    const n = q.seats.length;
+    const street = q.street;
+    const active = q.seats.map((s, i) => (s.folded ? -1 : i)).filter((i) => i >= 0);
+    const turn = D.getNextToAct({ players: n, button: q.button, active }, street, acted);
+    const player = playerName(turn.seat);
+    const preflop = street === 'preflop';
+    const rule = acted.length ? t('dealer.turn.continues') : t(preflop ? 'dealer.turn.preflopStart' : 'dealer.turn.postflopStart');
+    const moment = acted.length ? 'next' : 'first';
+    const detail = !turn.skipped.length
+      ? t(`dealer.turn.${moment}NoFold`, { player })
+      : t(`dealer.turn.${moment}${turn.skipped.length === 1 ? 'OneFold' : 'ManyFolds'}`, { player, folded: names(turn.skipped) });
+    const folded = q.seats.map((s, i) => (s.folded ? i : -1)).filter((i) => i >= 0);
+    const why = [
+      t('dealer.why.button', { player: playerName(q.button) }),
+      preflop && t('dealer.why.bigBlind', { player: playerName(D.positions(n, q.button).bb) }),
+      preflop && q.headsUp && t('dealer.turn.headsUpPreflop'),
+      t('dealer.why.actionOrder', { order: sequence(D.actionOrder(n, q.button, street, active)) }),
+      folded.length > 0 && t('dealer.why.foldedPlayers', { players: names(folded) }),
+      acted.length > 0 && t('dealer.why.acted', { players: acted.map(playerName).join(', ') }),
+      { result: t('dealer.why.answer', { answer: player }) },
+    ].filter(Boolean);
+    return { headline: player, short: `${rule} ${detail}`, why };
+  }
+
   function explainTable(q) {
+    if (q.situation === 'firstPreflop' || q.situation === 'firstPostflop') return explainTurn(q, []);
     const n = q.seats.length;
     const pos = D.positions(n, q.button);
     const hu = q.headsUp ? 'headsUp' : 'normal';
@@ -219,8 +256,6 @@
       t('dealer.why.blinds', { sb: playerName(pos.sb), bb: playerName(pos.bb) }),
     ];
     if (['firstCard', 'lastCard', 'nextCard'].includes(q.situation)) why.push(t('dealer.why.dealOrder', { order: sequence(D.dealOrder(n, q.button)) }));
-    if (q.situation === 'firstPreflop') why.push(t('dealer.why.actionOrder', { order: sequence(D.actionOrder(n, q.button, 'preflop')) }));
-    if (q.situation === 'firstPostflop') why.push(t('dealer.why.actionOrder', { order: sequence(D.actionOrder(n, q.button, 'flop')) }));
     if (['nextButton', 'nextSB', 'nextBB'].includes(q.situation)) {
       const next = D.nextHand(n, q.button);
       why.push(t('dealer.why.nextHand', { button: playerName(next.button), sb: playerName(next.sb), bb: playerName(next.bb) }));
@@ -236,17 +271,7 @@
         why: [t('dealer.why.streets'), { result: t('dealer.why.answer', { answer: t(`dealer.streets.${q.answer}`) }) }],
       };
     }
-    if (q.situation === 'whoActs') {
-      const street = q.street === 'preflop' ? 'preflop' : 'postflop';
-      const why = [t('dealer.why.actionOrder', { order: sequence(q.order) })];
-      if (q.acted.length) why.push(t('dealer.why.acted', { players: q.acted.map(playerName).join(', ') }));
-      if (q.seats.some((s) => !s.cards)) why.push(t('dealer.why.foldedSkipped'));
-      return {
-        headline: playerName(q.answer),
-        short: t(`dealer.short.flow.whoActs.${street}${q.headsUp ? 'HeadsUp' : ''}`),
-        why: [...why, { result: t('dealer.why.answer', { answer: playerName(q.answer) }) }],
-      };
-    }
+    if (q.situation === 'whoActs') return explainTurn(q, q.acted);
     const key = q.answer === 'pushPot' ? `pushPot.${q.variant}` : q.answer;
     return {
       headline: t(`dealer.actions.${q.answer}`),

@@ -103,12 +103,12 @@
 
   function render({ data }) {
     const t = DT.i18n.t;
-    return h('div', { class: 'view stack stack-4' },
+    return h('div', { class: 'view stack stack-5' },
       PageHeader({ eyebrow: t('nav.progress'), title: t('progress.title'), lead: t('progress.lead') }),
       RankPanel(data, { link: false, badgeSize: 80 }),
       h('div', { class: 'grid' },
         timeline(data),
-        h('div', { class: 'span-6 stack stack-4' }, moduleLevels(data), achievements(data))),
+        h('div', { class: 'span-6 stack stack-5' }, moduleLevels(data), achievements(data))),
       figures(data),
       history(data));
   }

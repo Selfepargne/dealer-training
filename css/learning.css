@@ -167,9 +167,71 @@
 
 /* ---- Module page: skills by level -------------------------------------------------------- */
 
-.skill-level { display: flex; flex-direction: column; gap: var(--s-3); }
-.skill-level + .skill-level { margin-top: var(--s-4); }
+/* Level tabs: small spaced capitals, one thin line, the active level in champagne */
+.level-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--s-5);
+  border-bottom: 1px solid var(--line);
+}
+/* "Show all" stands apart from the four levels */
+.level-tab[data-filter="all"] { margin-left: auto; }
+.level-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: var(--s-3) 0;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text-3);
+  transition: color var(--dur-2) var(--ease);
+}
+.level-tab::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: transparent;
+  transition: background-color var(--dur-2) var(--ease);
+}
+.level-tab:hover { color: var(--text); }
+.level-tab[aria-selected="true"] { color: var(--accent-hi); }
+.level-tab[aria-selected="true"]::after { background: var(--accent); }
+.level-tab__count { font-weight: 500; letter-spacing: 0; color: var(--text-3); }
+.level-tab[aria-selected="true"] .level-tab__count { color: var(--accent); }
+.level-panel { display: flex; flex-direction: column; gap: var(--s-6); }
+
+/* The skill counts only when the panel is wide enough to keep the tabs on one line */
+.skills-panel { container-type: inline-size; }
+@container (max-width: 640px) {
+  .level-tabs { gap: 0 var(--s-4); }
+  .level-tab { letter-spacing: 0.08em; }
+  .level-tab__count { display: none; }
+}
+@container (min-width: 380px) and (max-width: 480px) {
+  .level-tabs { gap: 0 var(--s-3); }
+  .level-tab { letter-spacing: 0.05em; }
+}
+
+@media (max-width: 479px) {
+  /* Two compact rows at most; the active level keeps its underline */
+  .level-tabs { gap: 0 var(--s-4); border-bottom: 0; }
+  .level-tab[data-filter="all"] { margin-left: 0; }
+  .level-tab { padding: var(--s-2) 0; letter-spacing: 0.1em; }
+  .level-tab::after { bottom: 2px; }
+}
+
+.skill-level { display: flex; flex-direction: column; gap: var(--s-4); }
+.skill-level + .skill-level { margin-top: var(--s-2); }
+
 .skill-level__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); }
+.skill-level__head.skill-level__head--count { justify-content: flex-end; }
 .skill-level__title {
   font-size: var(--fs-micro);
   font-weight: 600;
@@ -178,7 +240,7 @@
   color: var(--accent);
 }
 
-.skill-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3); }
+.skill-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-4); }
 
 .skill-card {
   display: flex;

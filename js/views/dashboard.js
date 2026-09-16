@@ -129,7 +129,7 @@
   }
 
   function render({ data }) {
-    return h('div', { class: 'view stack stack-4' },
+    return h('div', { class: 'view stack stack-5' },
       hero(data),
       h('div', { class: 'grid' }, DT.components.RankPanel(data, { className: 'span-5' }), statTiles(data)),
       h('div', { class: 'grid' }, skills(data), dailyCard(data)),
