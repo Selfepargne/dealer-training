@@ -2,6 +2,7 @@
   Texas Hold'em exercise screen (2 to 6 players).
   Questions come from skills.js (checked by the engine); this file only handles display and wording.
   Dealer situations (table setup, flow, chips) are displayed by dealer-view.js on the same table.
+  Ultimate Texas Hold'em settlements are displayed by ultimate-view.js.
 
   Every exercise module provides the same small set of functions, used by js/views/session.js:
     create(skillId, { players })  → a new question
@@ -21,6 +22,7 @@
   const { createQuestion, firstDifference, DEFINING } = DT.holdemSkills;
   const dealerView = DT.holdemDealerView; // table setup, flow of a hand, chips and bets
   const isDealerKind = (q) => q.kind === 'table' || q.kind === 'flow' || q.kind === 'chips';
+  const ultimateView = DT.holdemUltimateView; // Ultimate Texas Hold'em: settling the bets
 
   const t = (key, vars) => DT.i18n.t(key, vars);
   const rankChar = (value) => P.RANKS[value - 2];
@@ -33,6 +35,9 @@
 
   /** "Auto": the table grows with the level of the skill (or follows the skill's own range). */
   const AUTO_PLAYERS = { beginner: [2, 2], intermediate: [2, 3], advanced: [3, 4], expert: [4, 6] };
+
+  /** The table size choice does not apply to hand recognition (one hand) nor to Ultimate (the dealer faces 1 to 3 layouts). */
+  const hasTableSize = (skillId) => skillId !== 'hand_recognition' && !DT.holdemUltimate.SKILL_IDS.includes(skillId);
 
   function playersFor(skillId, setting, random = Math.random) {
     if (TABLE_SIZES.includes(Number(setting))) return Number(setting);
@@ -136,6 +141,7 @@
 
   function view(q) {
     if (isDealerKind(q)) return dealerView.view(q);
+    if (q.kind === 'ultimate') return ultimateView.view(q);
     if (q.kind === 'recognition') {
       return {
         stage: h('div', { class: 'holdem table--solo' }, felt(q), seat(q, 0, 'bottom', t('holdem.hole'))),
@@ -161,13 +167,15 @@
     return q.answer;
   }
 
+  /** Questions above the beginner level earn the "hard" bonus. */
   function isHard(q) {
-    return q.difficulty >= 6;
+    return q.level !== 'beginner';
   }
 
   /** Winners marked, their five cards stay bright, everything else is dimmed. */
   function reveal(q, stage) {
     if (isDealerKind(q)) return dealerView.reveal(q, stage);
+    if (q.kind === 'ultimate') return ultimateView.reveal(q, stage);
     stage.classList.add('is-revealed');
     const bright = new Set();
     q.winners.forEach((w) => q.players[w].hand.cards.forEach((c) => bright.add(c)));
@@ -193,6 +201,7 @@
    */
   function explain(q) {
     if (isDealerKind(q)) return dealerView.explain(q);
+    if (q.kind === 'ultimate') return ultimateView.explain(q);
     if (q.kind === 'recognition') {
       const hand = q.players[0].hand;
       return {
@@ -262,5 +271,5 @@
     return { ...base, short, why: [...why, decides, result] };
   }
 
-  DT.exercises.holdem = { create, view, correct, isHard, reveal, explain, handName, TABLE_SIZES, playersFor, stageFor, STAGE_AFTER };
+  DT.exercises.holdem = { create, view, correct, isHard, reveal, explain, handName, TABLE_SIZES, hasTableSize, playersFor, stageFor, STAGE_AFTER };
 })(window.DT);

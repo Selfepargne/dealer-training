@@ -1,6 +1,7 @@
 /*
   Hold'em question generators, one per skill (see js/data/holdem-skills.js).
   The dealer situations of the beginner level (table, flow, chips) come from dealer.js.
+  The Ultimate Texas Hold'em settlements (ultimate_* skills, one per level) come from ultimate.js.
 
   How a generator works:
     1. seed()   places the few cards that create the situation (e.g. a pair on the board)
@@ -15,6 +16,7 @@
 
   const P = DT.poker;
   const D = DT.holdemDealer;
+  const U = DT.holdemUltimate;
   const { SKILLS, byId } = DT.data.holdemSkills;
 
   // Leading values that define a hand; values after them are kickers.
@@ -303,6 +305,7 @@
   /** Extra time allowed per player beyond two: a bigger table takes longer to read. */
   const MS_PER_EXTRA_PLAYER = 700; // showdowns: every hand must be read
   const MS_PER_EXTRA_SEAT = 250; // dealer situations: seats, markers and chips
+  const MS_PER_EXTRA_SPOT = 1000; // Ultimate: every other player's layout on the table
 
   /**
    * "Who wins?" at a table of 2 to 6 players.
@@ -354,10 +357,12 @@
    * @returns question with: type, module, skill, level, difficulty, stage, targetMs, kind, answer, and
    *   showdowns (recognition, winner): board, players, winners, split
    *   dealer situations (table, flow, chips): see dealer.js
+   *   Ultimate settlements (ultimate): see ultimate.js
    */
   function extraTime(q) {
     if (q.kind === 'winner') return (q.players.length - 2) * MS_PER_EXTRA_PLAYER;
     if (q.seats) return (q.seats.length - 2) * MS_PER_EXTRA_SEAT;
+    if (q.kind === 'ultimate') return (q.spots.length - 1) * MS_PER_EXTRA_SPOT;
     return 0;
   }
 
@@ -379,6 +384,7 @@
       else if (skillId === 'table_setup') q = D.tableQuestion(level, seats, random);
       else if (skillId === 'hand_flow') q = D.flowQuestion(level, seats, random);
       else if (skillId === 'chips_bets') q = D.chipsQuestion(level, seats, random);
+      else if (U.SKILL_IDS.includes(skillId)) q = U.ultimateQuestion(skillId, level, random, RECOGNITION_SEEDS);
       else if (skillId === 'close_calls') q = winnerQuestion(pick(CLOSE_CALL_SOURCES, random), random, seats);
       else q = winnerQuestion(skillId, random, seats);
 
@@ -398,5 +404,5 @@
     throw new Error(`Could not generate a question for ${skillId}`);
   }
 
-  DT.holdemSkills = { createQuestion, firstDifference, DEFINING, MS_PER_EXTRA_PLAYER, MS_PER_EXTRA_SEAT, COMPARISON_SOURCES, CLOSE_CALL_SOURCES, SKILL_IDS: SKILLS.map((s) => s.id) };
+  DT.holdemSkills = { createQuestion, firstDifference, DEFINING, MS_PER_EXTRA_PLAYER, MS_PER_EXTRA_SEAT, MS_PER_EXTRA_SPOT, COMPARISON_SOURCES, CLOSE_CALL_SOURCES, SKILL_IDS: SKILLS.map((s) => s.id) };
 })(window.DT);

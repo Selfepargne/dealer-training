@@ -1,0 +1,154 @@
+/* ==========================================================================
+   Ultimate Texas Hold'em table — settling the bets (ultimate-view.js)
+   The dealer and the board along the straight edge, the players' layouts on the curve:
+   TRIPS on top, ANTE = BLIND side by side, PLAY underneath. Every class starts with uth-.
+   ========================================================================== */
+
+.uth-table {
+  --disc-w: 30px;
+  --disc-h: 9px;
+  --uth-card: 34px;
+  --felt-light: #14291f;
+  --felt-dark: #0a1611;
+  --uth-line: rgba(194, 162, 122, 0.5);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Half-moon felt: straight edge on the dealer's side, the curve on the players' side */
+.uth-felt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  padding: var(--s-5) var(--s-5) var(--s-7);
+  border: 1px solid var(--uth-line);
+  border-radius: 18px 18px 50% 50% / 18px 18px 110px 110px;
+  background: radial-gradient(ellipse at 50% 30%, var(--felt-light) 0%, var(--felt-dark) 80%);
+  box-shadow: 0 0 0 8px #070807, 0 0 0 9px rgba(0, 0, 0, 0.9), inset 0 0 50px 10px rgba(0, 0, 0, 0.4);
+}
+.uth-table .pcard { --w: var(--uth-card); }
+.uth-table .card-row { gap: 4px; flex-wrap: nowrap; }
+
+.uth-felt__top { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: var(--s-4) var(--s-6); }
+.uth-dealer, .uth-board { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.uth-dealer__label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(237, 230, 214, 0.5);
+}
+.uth-hand { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.uth-hand__name { font-size: var(--fs-small); color: var(--text); text-align: center; line-height: 1.25; }
+
+.uth-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--line-3);
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text-2);
+  background: rgba(0, 0, 0, 0.3);
+}
+.uth-tag--qualified, .uth-tag--win { border-color: var(--accent-line); color: var(--accent-hi); }
+.uth-tag--not-qualified, .uth-tag--lose { color: var(--text-3); }
+
+/* ---- Players' layouts --------------------------------------------------------- */
+
+.uth-spots { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-4); }
+.uth-spot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: var(--s-3);
+  border: 1px solid transparent;
+  border-radius: 14px;
+}
+/* Several players: the one the question is about */
+.uth-spot.is-target { border-color: var(--accent-line); background: rgba(0, 0, 0, 0.2); }
+.uth-spot__head { display: flex; align-items: center; gap: 8px; }
+.uth-spot__name { font-size: var(--fs-small); font-weight: 600; color: var(--ivory); white-space: nowrap; }
+.uth-spot__total { font-size: var(--fs-small); font-weight: 600; color: var(--accent-hi); }
+.uth-spot__total:empty { display: none; }
+
+.uth-layout { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.uth-layout__row { display: flex; align-items: stretch; gap: 4px; }
+.uth-layout__equal { align-self: center; font-size: var(--fs-small); color: var(--uth-line); }
+
+/* A betting spot printed on the felt */
+.uth-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  min-width: 80px;
+  min-height: 64px;
+  padding: 5px 6px;
+  border: 1px solid var(--uth-line);
+  border-radius: 10px;
+  transition: opacity var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+}
+.uth-zone--trips { border-radius: 999px; min-width: 96px; }
+.uth-zone--play { min-width: 172px; }
+.uth-zone.is-empty { border-style: dashed; border-color: rgba(194, 162, 122, 0.25); }
+.uth-zone__name { font-size: 0.5625rem; font-weight: 600; letter-spacing: 0.16em; color: var(--accent); }
+.uth-zone__name:empty { display: none; }
+.uth-zone__chips { display: flex; min-height: calc(var(--disc-h) * 1.4); }
+.uth-zone__amount { font-size: var(--fs-small); font-weight: 600; color: var(--ivory); white-space: nowrap; }
+.uth-zone__amount:empty { display: none; }
+.uth-zone__settle { font-size: 0.6875rem; font-weight: 600; white-space: nowrap; }
+.uth-zone__settle:empty { display: none; }
+
+/* Zone question: the spot to name */
+.uth-zone.is-asked { box-shadow: 0 0 0 2px var(--accent); background: var(--accent-wash); }
+
+/* After the answer: paid, pushed, lost */
+.uth-zone.is-paid { border-color: var(--accent); }
+.uth-zone.is-paid .uth-zone__settle { color: var(--accent-hi); }
+.uth-zone.is-push .uth-zone__settle { color: var(--text-2); }
+.uth-zone.is-lost { opacity: 0.45; }
+.uth-zone.is-lost .uth-zone__settle { color: var(--text-3); }
+
+/* ---- Pay tables (while they are being learnt) ------------------------------------- */
+
+.uth-paytables { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-4); }
+.uth-paytable { padding: var(--s-3) var(--s-4); border: 1px solid var(--line-2); border-radius: var(--radius-sm); }
+.uth-paytable__title { font-size: var(--fs-micro); font-weight: 600; letter-spacing: var(--tracking-caps); color: var(--accent); }
+.uth-paytable dl { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--s-3); margin: 6px 0 0; font-size: var(--fs-small); }
+.uth-paytable dt { color: var(--text-2); }
+.uth-paytable dd { margin: 0; color: var(--ivory); text-align: right; }
+
+/* ---- Phones ------------------------------------------------------------------------ */
+
+@media (max-width: 600px) {
+  .uth-table { --uth-card: 28px; --disc-w: 24px; --disc-h: 7px; }
+  .uth-felt { gap: var(--s-4); padding: var(--s-4) var(--s-2) var(--s-6); border-radius: 14px 14px 50% 50% / 14px 14px 60px 60px; }
+  .uth-felt__top { gap: var(--s-3) var(--s-4); }
+  .uth-spots { gap: var(--s-2); }
+  .uth-spot { padding: var(--s-2) 4px; }
+  /* Two or three players: two layouts per line */
+  .uth-table:not([data-players="1"]) .uth-spot { flex: 0 1 calc(50% - var(--s-2)); }
+  .uth-zone { min-width: 62px; min-height: 54px; padding: 4px; }
+  .uth-zone--trips { min-width: 70px; }
+  .uth-zone--play { min-width: 132px; }
+  .uth-table:not([data-players="1"]) .uth-zone { min-width: 56px; }
+  .uth-table:not([data-players="1"]) .uth-zone--play { min-width: 120px; }
+  .uth-zone__amount { font-size: 0.75rem; }
+  .uth-zone__settle { font-size: 0.625rem; white-space: normal; text-align: center; }
+  .uth-paytables { grid-template-columns: 1fr 1fr; gap: var(--s-2); }
+  .uth-paytable { padding: var(--s-2) var(--s-3); }
+  .uth-paytable dl { font-size: 0.75rem; gap: 1px var(--s-2); }
+}

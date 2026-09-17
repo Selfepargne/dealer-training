@@ -138,7 +138,7 @@
           h('span', { class: 'mode-btn__hint' }, t(`session.modeHint.${value}`)));
 
       // Table size (Hold'em): Auto follows the level of the skill; the choice is remembered.
-      const tableChoice = exercise.TABLE_SIZES && focusSkill !== 'hand_recognition' &&
+      const tableChoice = exercise.TABLE_SIZES && (!focusSkill || exercise.hasTableSize(focusSkill)) &&
         h('div', { class: 'table-choice' },
           h('span', { class: 'eyebrow' }, t('session.tableSize')),
           Segmented({

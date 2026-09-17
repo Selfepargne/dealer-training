@@ -352,5 +352,5 @@
     return explainChips(q);
   }
 
-  DT.holdemDealerView = { view, reveal, explain, optionLabel };
+  DT.holdemDealerView = { view, reveal, explain, optionLabel, stacks };
 })(window.DT);

@@ -9,11 +9,13 @@
     - the situation really matches the skill (between the two key players)
     - extra players never beat the key winner
   Dealer situations (table setup, flow, chips): metadata and options here, rules in tests/dealer.test.js.
+  Ultimate settlements: metadata, cards and options here, rules and situations in tests/ultimate.test.js.
 */
 global.window = { DT: { data: {} } };
 require('../js/modules/holdem/engine.js');
 require('../js/data/holdem-skills.js');
 require('../js/modules/holdem/dealer.js');
+require('../js/modules/holdem/ultimate.js');
 require('../js/modules/holdem/skills.js');
 
 const P = window.DT.poker;
@@ -47,6 +49,11 @@ const EXPECT = {
   table_setup: (q) => q.kind === 'table',
   hand_flow: (q) => q.kind === 'flow',
   chips_bets: (q) => q.kind === 'chips',
+  // Ultimate Texas Hold'em settlements: checked in detail by tests/ultimate.test.js
+  ultimate_basics: (q) => q.kind === 'ultimate',
+  ultimate_bets: (q) => q.kind === 'ultimate',
+  ultimate_payouts: (q) => q.kind === 'ultimate',
+  ultimate_settlement: (q) => q.kind === 'ultimate',
   kicker: (q, [a, b]) => !q.split && a.category === b.category && a.values[0] === b.values[0] && firstDifference(a, b) >= 1,
   straight: (q, [a, b]) => !q.split && cat(a) === 'straight' && cat(b) === 'straight',
   flush: (q, [a, b]) => !q.split && cat(a) === 'flush' && cat(b) === 'flush',
@@ -68,8 +75,9 @@ const EXPECT = {
 const LEVEL_ORDER = ['beginner', 'intermediate', 'advanced', 'expert'];
 
 test('Every skill has an expectation, a unique id and a coherent difficulty', () => {
-  assert(SKILLS.filter((s) => s.level === 'beginner').map((s) => s.id).join() === 'hand_recognition,hand_comparison,table_setup,hand_flow,chips_bets', 'beginner path');
-  assert(SKILLS.length === 16, `16 skills expected, got ${SKILLS.length}`);
+  assert(SKILLS.filter((s) => s.level === 'beginner').map((s) => s.id).join() === 'hand_recognition,hand_comparison,table_setup,hand_flow,chips_bets,ultimate_basics', 'beginner path');
+  assert(SKILLS.length === 20, `20 skills expected, got ${SKILLS.length}`);
+  assert(SKILLS.filter((s) => s.id.startsWith('ultimate_')).map((s) => s.level).join() === LEVEL_ORDER.join(), 'one Ultimate skill per level');
   SKILLS.forEach((s, i) => {
     assert(EXPECT[s.id], `no expectation for ${s.id}`);
     assert(s.difficulty === i + 1, `${s.id}: difficulty should follow the path order`);
@@ -80,7 +88,7 @@ test('Every skill has an expectation, a unique id and a coherent difficulty', ()
 
 const splitCounts = {};
 
-const { MS_PER_EXTRA_PLAYER, MS_PER_EXTRA_SEAT } = window.DT.holdemSkills;
+const { MS_PER_EXTRA_PLAYER, MS_PER_EXTRA_SEAT, MS_PER_EXTRA_SPOT } = window.DT.holdemSkills;
 
 for (const skill of SKILLS) {
   test(`${skill.id} — ${PER_SKILL} valid questions, 2 to 6 players`, () => {
@@ -99,6 +107,14 @@ for (const skill of SKILLS) {
         assert(EXPECT[skill.id](q), 'question kind');
         assert(q.seats.length === players, `${players} seats expected, got ${q.seats.length}`);
         assert(q.targetMs === skill.targetMs + (players - 2) * MS_PER_EXTRA_SEAT, 'target time grows with the table');
+        assert(q.options.includes(q.answer) && new Set(q.options).size === q.options.length, 'answer among unique options');
+        continue;
+      }
+      if (q.kind === 'ultimate') {
+        assert(EXPECT[skill.id](q), 'question kind');
+        assert(q.targetMs === skill.targetMs + (q.spots.length - 1) * MS_PER_EXTRA_SPOT, 'target time grows with the players');
+        const cardsUsed = q.board.concat(q.dealer.cards, ...q.spots.map((s) => s.cards));
+        assert(cardsUsed.length === 7 + 2 * q.spots.length && new Set(cardsUsed).size === cardsUsed.length, 'cards: no duplicate');
         assert(q.options.includes(q.answer) && new Set(q.options).size === q.options.length, 'answer among unique options');
         continue;
       }
@@ -143,7 +159,7 @@ for (const skill of SKILLS) {
       }
       seen.add(all.join(''));
     }
-    if (!DEALER_KINDS.includes(createQuestion(skill.id).kind)) assert(seen.size > PER_SKILL * 0.95, `not varied enough: ${seen.size} unique of ${PER_SKILL}`);
+    if (['winner', 'recognition'].includes(createQuestion(skill.id).kind)) assert(seen.size > PER_SKILL * 0.95, `not varied enough: ${seen.size} unique of ${PER_SKILL}`);
     splitCounts[skill.id] = splits;
   });
 }

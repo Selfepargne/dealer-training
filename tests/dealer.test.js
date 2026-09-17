@@ -10,6 +10,7 @@ global.window = { DT: { data: {} } };
 require('../js/modules/holdem/engine.js');
 require('../js/data/holdem-skills.js');
 require('../js/modules/holdem/dealer.js');
+require('../js/modules/holdem/ultimate.js');
 require('../js/modules/holdem/skills.js');
 
 const D = window.DT.holdemDealer;

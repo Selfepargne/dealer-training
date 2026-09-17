@@ -74,12 +74,12 @@ const idsOf = (level) => SKILLS.filter((s) => level === 'all' || s.level === lev
 
 // ---------------------------------------------------------------------------
 
-test('New profile: Beginner shown by default, with its 5 skills', () => {
+test('New profile: Beginner shown by default, with its 6 skills', () => {
   startWith(null);
   const page = render();
   equal(tabs(page).map((t) => t.props.dataset.filter), ['beginner', 'intermediate', 'advanced', 'expert', 'all'], 'tabs');
   equal(activeTab(page), 'beginner', 'active tab');
-  equal(cardIds(page), ['hand_recognition', 'hand_comparison', 'table_setup', 'hand_flow', 'chips_bets'], 'beginner skills');
+  equal(cardIds(page), ['hand_recognition', 'hand_comparison', 'table_setup', 'hand_flow', 'chips_bets', 'ultimate_basics'], 'beginner skills');
 });
 
 for (const level of ['beginner', 'intermediate', 'advanced', 'expert']) {
@@ -98,7 +98,7 @@ test('Show all: every skill of every level, level titles back', () => {
   click(render(), 'all');
   const page = render();
   equal(activeTab(page), 'all', 'active tab');
-  equal(cardIds(page), idsOf('all'), 'all 16 skills, in the path order');
+  equal(cardIds(page), idsOf('all'), 'all 20 skills, in the path order');
   equal(all(page, hasClass('skill-level__title')).map(text), ['Débutant', 'Intermédiaire', 'Avancé', 'Expert'], 'level titles');
 });
 
@@ -111,7 +111,7 @@ test('No skill lost: the four levels together hold every skill exactly once', ()
   }
   equal(seen.slice().sort(), SKILLS.map((s) => s.id).sort(), 'every skill once');
   const counts = tabs(render()).filter((t) => t.props.dataset.filter !== 'all').map((t) => Number(text(all(t, hasClass('level-tab__count'))[0])));
-  equal(counts, [5, 5, 5, 1], 'counts shown on the tabs');
+  equal(counts, [6, 6, 6, 2], 'counts shown on the tabs');
 });
 
 test('The choice is remembered in localStorage and comes back on the next visit', () => {

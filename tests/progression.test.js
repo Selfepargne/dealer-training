@@ -75,7 +75,7 @@ test('A mistake is logged with module, skill, level, difficulty, mode and time',
   equal(data().stats.xp, xpBefore, 'XP never removed');
   equal(data().stats.currentStreak, 0, 'streak reset');
   const m = data().stats.mistakes[0];
-  equal([m.module, m.skill, m.level, m.difficulty, m.mode, m.responseTime], ['holdem', 'kicker', 'intermediate', 6, 'practice', 4.21], 'mistake');
+  equal([m.module, m.skill, m.level, m.difficulty, m.mode, m.responseTime], ['holdem', 'kicker', 'intermediate', 7, 'practice', 4.21], 'mistake');
 });
 
 test('Mistakes are counted per skill, most frequent first', () => {
@@ -145,9 +145,9 @@ test('Module tier follows the path: Intermediate once all Beginner skills are ma
   beginner.slice(0, -1).forEach((s) => { for (let i = 0; i < 50; i++) answer(s.id, true, 1000); });
   equal(data().stats.skills.holdem.tier, 0, 'still beginner');
   const status = P.tierStatus(data(), 'holdem');
-  equal([status.requirements[0].key, status.requirements[0].current, status.requirements[0].target], ['levelSkills', 4, 5], 'condition');
+  equal([status.requirements[0].key, status.requirements[0].current, status.requirements[0].target], ['levelSkills', beginner.length - 1, beginner.length], 'condition');
   const tierUps = [];
-  for (let i = 0; i < 50; i++) tierUps.push(...answer(beginner[4].id, true, 1000).unlocked.tiers);
+  for (let i = 0; i < 50; i++) tierUps.push(...answer(beginner[beginner.length - 1].id, true, 1000).unlocked.tiers);
   equal(data().stats.skills.holdem.tier, 1, 'intermediate');
   equal(tierUps, [{ module: 'holdem', tier: 'intermediate' }], 'tier-up reported once');
   equal(P.nextSkill(data(), 'holdem').skill.id, 'kicker', 'next skill');

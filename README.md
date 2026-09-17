@@ -11,8 +11,9 @@ La progression est enregistrée dans le navigateur (`localStorage`). Réglages �
 
 ```
 node tests/poker.test.js             moteur Texas Hold'em (~15 s)
-node tests/holdem-skills.test.js     16 compétences Hold'em : questions valides et bien catégorisées
+node tests/holdem-skills.test.js     20 compétences Hold'em : questions valides et bien catégorisées
 node tests/dealer.test.js            débutant croupier : bouton, blindes, ordres, déroulement, jetons et mises
+node tests/ultimate.test.js          Ultimate Texas Hold'em : barèmes BLIND / TRIPS, qualification, règlement, 4 niveaux
 node tests/blackjack-engine.test.js  moteur Blackjack (toutes les mains jusqu'à 5 cartes)
 node tests/blackjack-skills.test.js  compétences Blackjack jouables : questions valides
 node tests/explanations.test.js      phrases courtes et « Pourquoi ? »
@@ -38,7 +39,8 @@ js/data/holdem-skills.js   parcours Hold'em : 16 compétences, temps cibles, rè
 js/data/blackjack-skills.js parcours Blackjack : 18 compétences, erreurs typiques, phases A/B/C
 js/core/progression.js     règles d'XP, passage de grade, axes de travail
 js/core/state.js           données enregistrées
-js/modules/holdem/         moteur poker (engine.js), générateurs par compétence (skills.js), écran (holdem.js)
+js/modules/holdem/         moteur poker (engine.js), générateurs par compétence (skills.js), écran (holdem.js),
+                           croupier (dealer.js, dealer-view.js), Ultimate : règlement des mises (ultimate.js, ultimate-view.js)
 js/modules/blackjack/      moteur blackjack (engine.js : règles de table), générateurs (skills.js), écran (blackjack.js)
 js/views/                  un fichier par écran (session.js = écran d'exercice commun)
 js/components/             éléments réutilisés (carte, jeton, badge de grade, bouton…)

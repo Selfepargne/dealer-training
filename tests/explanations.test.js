@@ -14,7 +14,8 @@ window.DT.components.Chip = () => null;
 for (const f of [
   '../js/i18n/en.js', '../js/i18n/fr.js', '../js/core/i18n.js', '../js/core/format.js',
   '../js/data/holdem-skills.js', '../js/data/blackjack-skills.js',
-  '../js/modules/holdem/engine.js', '../js/modules/holdem/dealer.js', '../js/modules/holdem/skills.js', '../js/modules/holdem/dealer-view.js', '../js/modules/holdem/holdem.js',
+  '../js/modules/holdem/engine.js', '../js/modules/holdem/dealer.js', '../js/modules/holdem/ultimate.js', '../js/modules/holdem/skills.js',
+  '../js/modules/holdem/dealer-view.js', '../js/modules/holdem/ultimate-view.js', '../js/modules/holdem/holdem.js',
   '../js/modules/blackjack/engine.js', '../js/modules/blackjack/skills.js', '../js/modules/blackjack/blackjack.js',
 ]) require(f);
 window.DT.i18n.setLanguage('fr');
