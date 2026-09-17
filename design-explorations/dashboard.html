@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tableau de bord — rendu · Dealer Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap">
+<style>
+/* ==========================================================================
+   TABLEAU DE BORD — RENDU (maquette autonome)
+   Une seule page, rien d'importé du produit et rien de modifié dans le produit.
+   Trois choses y sont proposées :
+     1. le hero, redessiné d'après la photo de référence : rail or, feutre profond,
+        jetons noir et or au monogramme, A♠ K♥, bouton DEALER, sabot ;
+     2. les boutons or pleins de la seconde image ;
+     3. la pluie dorée posée sur le FOND DU SITE — derrière la barre latérale et entre
+        les panneaux — et non plus à l'intérieur d'une carte.
+   ========================================================================== */
+
+:root {
+  /* Fond : noir profond, sous-ton vert */
+  --bg: #070a08;
+  --bg-2: #0a0d0b;
+  --panel: rgba(17, 20, 18, 0.82);
+  --panel-line: rgba(226, 201, 145, 0.12);
+
+  --ivory: #f0e9da;
+  --text: #e3dccc;
+  --text-2: #a8a298;
+  --text-3: #6f6a62;
+
+  /* Or : celui du bouton de la seconde image */
+  --gold-hi: #f7e3ac;
+  --gold: #e3c57f;
+  --gold-mid: #d4ad57;
+  --gold-lo: #b8913f;
+  --gold-line: rgba(226, 197, 127, 0.34);
+  --gold-wash: rgba(226, 197, 127, 0.08);
+
+  --felt: #14311f;
+
+  --font-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --font-ui: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --caps: 0.16em;
+  --r: 12px;
+  --r-lg: 18px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================================================
+   1. LA PLUIE DORÉE — sur le fond du site, derrière tout le reste
+   ========================================================================== */
+
+.rain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  container-type: size;
+}
+/* Un halo chaud très large : c'est lui qui fait que le fond n'est pas un noir plat */
+.rain::before {
+  content: "";
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 90%;
+  background:
+    radial-gradient(45% 55% at 78% 0%, rgba(226, 197, 127, 0.07), transparent 70%),
+    radial-gradient(60% 60% at 12% 30%, rgba(20, 49, 31, 0.5), transparent 72%);
+}
+
+/* Un symbole : au trait pour la variante « dust », plein pour la variante « photo » */
+.drop {
+  position: absolute;
+  left: var(--x);
+  bottom: -16%;
+  width: var(--s);
+  height: var(--s);
+  animation: rise var(--t) linear var(--delay) infinite;
+}
+.drop__sway { display: block; height: 100%; animation: sway var(--sway) ease-in-out var(--delay) infinite alternate; }
+.drop svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+/* Variante A — Gold Dust : contour d'un cheveu, plus de vrais grains d'or */
+[data-rain="dust"] .drop path {
+  fill: none;
+  stroke: url(#thread);
+  stroke-width: 1.1;
+  vector-effect: non-scaling-stroke;
+  opacity: var(--dim);
+  filter: drop-shadow(0 0 4px rgba(226, 197, 127, 0.4));
+}
+[data-rain="dust"] .drop--far path { stroke: url(#thread-far); stroke-width: 0.85; opacity: calc(var(--dim) * 0.75); filter: none; }
+
+/* Variante photo — symboles pleins, avec profondeur, comme sur l'image de référence */
+[data-rain="full"] .drop path { fill: url(#leaf); stroke: none; opacity: var(--dim); }
+[data-rain="full"] .drop svg { filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.55)); }
+[data-rain="full"] .drop--far svg { filter: blur(2.6px); }
+[data-rain="full"] .drop--far path { fill: url(#leaf-far); opacity: calc(var(--dim) * 0.85); }
+[data-rain="full"] .grain { opacity: 0 !important; }
+
+.grain {
+  position: absolute;
+  left: var(--x);
+  bottom: -6%;
+  width: var(--d);
+  height: var(--d);
+  border-radius: 50%;
+  background: var(--gold-hi);
+  opacity: 0;
+  box-shadow: 0 0 var(--halo) rgba(247, 227, 172, 0.6);
+  animation: rise var(--t) linear var(--delay) infinite, twinkle var(--flick) ease-in-out var(--delay) infinite;
+}
+
+@keyframes rise {
+  0%   { opacity: 0; transform: translate3d(0, 0, 0); }
+  10%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(0, -128cqh, 0); }
+}
+@keyframes sway {
+  from { transform: translate3d(calc(var(--drift) * -1), 0, 0) rotate(calc(var(--spin) * -1)); }
+  to   { transform: translate3d(var(--drift), 0, 0) rotate(var(--spin)); }
+}
+@keyframes twinkle {
+  0%, 100% { opacity: calc(var(--dim) * 0.3); }
+  50%      { opacity: var(--dim); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .drop, .drop__sway, .grain { animation: none; opacity: var(--dim); transform: translate3d(0, -50cqh, 0); }
+}
+body[data-paused="true"] .rain * { animation-play-state: paused !important; }
+
+/* ==========================================================================
+   2. LE CADRE — la pluie passe derrière la barre latérale et entre les panneaux
+   ========================================================================== */
+
+.shell { position: relative; z-index: 1; display: flex; min-height: 100vh; }
+
+.side {
+  flex: 0 0 262px;
+  padding: 26px 24px 30px;
+  border-right: 1px solid rgba(226, 201, 145, 0.08);
+  background: linear-gradient(180deg, rgba(7, 10, 8, 0.86), rgba(7, 10, 8, 0.7));
+  display: flex;
+  flex-direction: column;
+}
+.brand { display: flex; align-items: center; gap: 13px; margin-bottom: 34px; }
+.brand__mark {
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border: 1px solid var(--gold-line);
+  border-radius: 10px;
+  background: linear-gradient(160deg, #16281c, #0b120e);
+}
+.brand__name { font-family: var(--font-display); font-size: 1.22rem; font-weight: 500; color: var(--ivory); line-height: 1.05; }
+.brand__name small { display: block; margin-top: 3px; font-family: var(--font-ui); font-size: 9px; font-weight: 600; letter-spacing: var(--caps); text-transform: uppercase; color: var(--gold); }
+
+.nav { display: grid; gap: 3px; }
+.nav__eyebrow { margin: 26px 0 10px 12px; font-size: 10px; font-weight: 600; letter-spacing: var(--caps); text-transform: uppercase; color: var(--text-3); }
+.nav a {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 13px;
+  border-radius: 9px;
+  color: var(--text-2);
+  font-size: 14px;
+  text-decoration: none;
+}
+.nav a:hover { background: linear-gradient(90deg, var(--gold-wash), transparent 72%); color: var(--ivory); }
+.nav a[aria-current] { background: rgba(226, 197, 127, 0.1); color: var(--ivory); box-shadow: inset 2px 0 0 var(--gold-mid); }
+.nav a svg { width: 17px; height: 17px; flex: 0 0 auto; }
+.nav--small a { padding: 9px 13px; font-size: 13.5px; color: var(--text-3); }
+
+.motto {
+  margin: auto 0 0;
+  padding-top: 22px;
+  border-top: 1px solid rgba(226, 201, 145, 0.1);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.0625rem;
+  line-height: 1.4;
+  color: var(--text-3);
+}
+
+.main { flex: 1 1 auto; min-width: 0; padding: 30px 36px 60px; }
+
+/* ==========================================================================
+   3. LE HERO — l'image de référence, incrustée telle quelle
+   Le rendu desktop est l'image, au pixel : le titre, le bouton et la citation en font partie.
+   Une zone cliquable transparente est calée sur le bouton peint, pour que le hero reste utilisable.
+   Sur téléphone l'image est recadrée sur le tapis et le texte redevient du vrai texte.
+   ========================================================================== */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  background: #070a08;
+  box-shadow: 0 40px 80px -50px #000;
+}
+.hero__photo { display: block; width: 100%; height: auto; }
+
+/* Le bouton de l'image : x 110→677, y 400→473 sur 1981 × 794 */
+.hero__hit { position: absolute; left: 5.55%; top: 50.3%; width: 28.7%; height: 9.3%; border-radius: 8px; }
+.hero__hit:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 4px; }
+
+.hero__mobile { display: none; }
+
+.hero__badge {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  margin: 0 0 18px;
+  font-size: 11px; font-weight: 600; letter-spacing: var(--caps); text-transform: uppercase;
+  color: var(--text-2);
+}
+.hero__badge b { font-weight: 600; color: var(--gold); }
+.hero__date { margin: 0 0 12px; font-size: 11px; font-weight: 600; letter-spacing: var(--caps); text-transform: uppercase; color: var(--gold); }
+.hero__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.85);
+}
+.hero__title span { color: var(--gold-hi); }
+.hero__lead { margin: 16px 0 26px; font-size: 1.0625rem; color: #d9d3c6; text-shadow: 0 1px 20px rgba(0, 0, 0, 0.8); }
+.hero__resume { margin: 16px 0 0; font-size: 13px; color: var(--text-2); }
+
+/* ==========================================================================
+   4. LES BOUTONS OR — ceux de la seconde image
+   ========================================================================== */
+
+.btn {
+  display: inline-flex; align-items: center; gap: 14px;
+  padding: 17px 30px;
+  border: 1px solid var(--gold-lo);
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--gold-hi) 0%, var(--gold) 42%, var(--gold-mid) 76%, #c59f4c 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0 rgba(120, 88, 26, 0.35),
+    0 14px 30px -18px rgba(0, 0, 0, 0.95);
+  color: #1b1408;
+  font-size: 13px; font-weight: 700; letter-spacing: var(--caps); text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.btn:hover { background: linear-gradient(180deg, #fdefc8 0%, var(--gold-hi) 42%, var(--gold) 76%, var(--gold-mid) 100%); }
+.btn svg { width: 14px; height: 14px; fill: #1b1408; }
+.btn--ghost {
+  border-color: var(--gold-line);
+  background: transparent;
+  box-shadow: none;
+  color: var(--gold);
+}
+.btn--ghost:hover { background: var(--gold-wash); color: var(--gold-hi); }
+.btn--ghost svg { fill: var(--gold); }
+
+/* ==========================================================================
+   5. LES CHIFFRES — quatre tuiles comme sur la seconde image
+   ========================================================================== */
+
+.tiles { display: grid; grid-template-columns: 1.85fr 1fr 1fr 1fr; gap: 18px; margin-top: 22px; }
+@media (max-width: 1180px) { .tiles { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 680px) { .tiles { grid-template-columns: 1fr; } }
+
+.tile {
+  position: relative;
+  overflow: hidden;
+  padding: 24px 26px 26px;
+  border: 1px solid rgba(226, 197, 127, 0.16);
+  border-radius: var(--r);
+  background:
+    radial-gradient(120% 140% at 90% -25%, rgba(226, 197, 127, 0.08), transparent 62%),
+    linear-gradient(180deg, rgba(25, 28, 25, 0.9), rgba(14, 17, 15, 0.84));
+}
+/* Un filet d'or sur l'arête haute : c'est lui qui fait lever l'œil vers le chiffre */
+.tile::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(247, 227, 172, 0.6) 28%, rgba(247, 227, 172, 0.6) 72%, transparent);
+}
+.tile__head { min-height: 50px; padding-right: 60px; margin-bottom: 18px; }
+.tile__label { font-size: 11.5px; font-weight: 600; letter-spacing: 0.085em; line-height: 1.35; text-transform: uppercase; color: #cdc6b8; }
+
+/* Le symbole : plus grand, en or vif, avec le même éclat que le bouton */
+.tile__icon {
+  position: absolute;
+  top: 22px; right: 24px;
+  width: 48px; height: 48px;
+  display: grid; place-items: center;
+  border: 1px solid rgba(226, 197, 127, 0.5);
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, rgba(247, 227, 172, 0.22), rgba(226, 197, 127, 0.04) 72%);
+  box-shadow: 0 8px 22px -12px rgba(226, 197, 127, 0.65), inset 0 1px 0 rgba(255, 246, 224, 0.25);
+}
+.tile__icon svg {
+  width: 25px; height: 25px;
+  stroke: var(--gold-hi); fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+  filter: drop-shadow(0 0 7px rgba(247, 227, 172, 0.5));
+}
+
+/* Le chiffre : grand, et coulé dans le même or que le bouton */
+.tile__figure { display: flex; align-items: baseline; gap: 10px; }
+.tile__figure b {
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  font-weight: 600;
+  line-height: 0.92;
+  background: linear-gradient(180deg, #fffaf0 0%, var(--gold-hi) 42%, var(--gold-mid) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.tile__figure small { font-size: 16px; font-weight: 600; color: var(--gold); }
+.tile__note { margin: 14px 0 0; font-size: 13px; color: var(--text-3); }
+
+/* La tuile de grade : le même traitement, à l'échelle de l'anneau */
+.grade { display: flex; align-items: center; gap: 18px; }
+.grade__ring {
+  position: relative;
+  flex: 0 0 auto;
+  width: 68px; height: 68px;
+  display: grid; place-items: center;
+  border: 1px solid rgba(226, 197, 127, 0.5);
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, rgba(247, 227, 172, 0.14), transparent 72%);
+  box-shadow: 0 8px 22px -14px rgba(226, 197, 127, 0.6);
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 600;
+  color: var(--gold-hi);
+}
+.grade__ring::before {
+  content: "";
+  position: absolute; inset: -6px;
+  border-radius: 50%;
+  border: 1px solid rgba(226, 197, 127, 0.16);
+}
+.grade__name { font-family: var(--font-display); font-size: 1.5rem; font-weight: 500; line-height: 1.08; white-space: nowrap; color: var(--ivory); }
+.grade__pct {
+  margin-left: auto;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 1.85rem;
+  font-weight: 600;
+  background: linear-gradient(180deg, #fffaf0, var(--gold-hi) 45%, var(--gold-mid));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.bar { margin-top: 16px; height: 4px; border-radius: 2px; background: rgba(226, 201, 145, 0.12); overflow: hidden; }
+.bar span { display: block; height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--gold-lo), var(--gold-hi)); box-shadow: 0 0 12px rgba(226, 197, 127, 0.45); }
+.grade__next { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 0; font-size: 13px; color: var(--text-3); }
+.grade__next b { color: var(--gold); font-weight: 600; }
+
+/* ==========================================================================
+   6. LE RESTE DE LA PAGE — assez pour juger la pluie sur le fond
+   ========================================================================== */
+
+.cols { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; margin-top: 18px; }
+@media (max-width: 1080px) { .cols { grid-template-columns: 1fr; } }
+
+.panel {
+  padding: 24px 26px 26px;
+  border: 1px solid var(--panel-line);
+  border-radius: var(--r);
+  background: var(--panel);
+}
+.panel__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 20px; }
+.panel__title { margin: 0; font-size: 12.5px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; color: #c6bfb1; }
+.link { color: var(--gold); font-size: 13px; text-decoration: none; border-bottom: 1px solid var(--gold-line); }
+
+.skill { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-top: 1px solid rgba(226, 201, 145, 0.07); }
+.skill:first-of-type { border-top: 0; }
+.skill__name { font-size: 15px; color: var(--text); }
+.skill__stage { margin-left: auto; font-size: 11px; font-weight: 600; letter-spacing: var(--caps); text-transform: uppercase; color: var(--text-3); }
+.skill__bar { flex: 0 0 120px; height: 3px; border-radius: 2px; background: rgba(226, 201, 145, 0.12); overflow: hidden; }
+.skill__bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--gold-lo), var(--gold)); }
+
+.daily { display: flex; flex-direction: column; height: 100%; }
+.daily__xp {
+  align-self: flex-start;
+  padding: 6px 14px;
+  border: 1px solid var(--gold-line);
+  border-radius: 999px;
+  font-size: 11px; font-weight: 700; letter-spacing: var(--caps); text-transform: uppercase;
+  color: var(--gold-hi);
+}
+.daily h3 { margin: 16px 0 10px; font-family: var(--font-display); font-size: 1.95rem; font-weight: 500; color: var(--ivory); }
+.daily p { margin: 0 0 22px; font-size: 13.5px; line-height: 1.6; color: var(--text-2); }
+.daily .btn { margin-top: auto; }
+
+/* ==========================================================================
+   7. La barre de la maquette — hors sujet pour le produit, utile pour juger
+   ========================================================================== */
+
+.demo {
+  position: fixed;
+  z-index: 5;
+  right: 18px; bottom: 18px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--panel-line);
+  border-radius: 999px;
+  background: rgba(7, 10, 8, 0.9);
+}
+.demo span { padding-right: 4px; font-size: 10px; font-weight: 600; letter-spacing: var(--caps); text-transform: uppercase; color: var(--text-3); }
+.demo button {
+  padding: 7px 14px;
+  border: 1px solid var(--panel-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit; font-size: 12px;
+  cursor: pointer;
+}
+.demo button:hover { border-color: var(--gold-line); color: var(--ivory); }
+.demo button[aria-pressed="true"] { border-color: var(--gold-line); background: var(--gold-wash); color: var(--gold-hi); }
+
+@media (max-width: 900px) {
+  .side { display: none; }
+  /* L'image est recadrée sur le tapis, et le texte peint laisse la place à du vrai texte */
+  .hero { min-height: 340px; }
+  .hero__photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 56% 62%; }
+  .hero__hit { display: none; }
+  .hero__mobile {
+    display: block;
+    position: relative;
+    z-index: 2;
+    padding: 26px 22px 30px;
+    background: linear-gradient(100deg, rgba(4, 6, 4, 0.94) 0%, rgba(4, 6, 4, 0.8) 55%, rgba(4, 6, 4, 0.34) 100%);
+  }
+  .skill { flex-wrap: wrap; }
+  .skill__name { flex: 1 1 auto; }
+  .skill__stage { white-space: nowrap; }
+  .skill__bar { flex: 1 1 100%; order: 3; }
+  .main { padding: 20px 18px 80px; }
+}
+</style>
+</head>
+<body data-rain="dust">
+
+<!-- Les matières partagées : le fil d'or de la pluie, et l'or plein de la variante photo -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="thread" x1="0" y1="0" x2=".4" y2="1">
+      <stop offset="0" stop-color="#f7e3ac"/><stop offset=".45" stop-color="#e3c57f"/><stop offset="1" stop-color="#8e7440"/>
+    </linearGradient>
+    <linearGradient id="thread-far" x1="0" y1="0" x2=".4" y2="1">
+      <stop offset="0" stop-color="#ab8e52"/><stop offset="1" stop-color="#6d5a33"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1=".15" y1="0" x2=".85" y2="1">
+      <stop offset="0" stop-color="#fbeec6"/><stop offset=".38" stop-color="#e3c57f"/>
+      <stop offset=".7" stop-color="#b9954f"/><stop offset="1" stop-color="#8a6f39"/>
+    </linearGradient>
+    <linearGradient id="leaf-far" x1=".15" y1="0" x2=".85" y2="1">
+      <stop offset="0" stop-color="#c8a765"/><stop offset="1" stop-color="#7d663a"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="rain" id="rain" aria-hidden="true"></div>
+
+<div class="shell">
+  <aside class="side">
+    <div class="brand">
+      <span class="brand__mark">
+        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#e3c57f" d="M12 2.4C12 2.4 4.9 7.7 4.9 12.2c0 2.5 1.9 4.2 4.1 4.2 1.2 0 2.2-.4 2.8-1.2-.2 2.6-1.2 4.5-2.7 5.5h5.8c-1.5-1-2.5-2.9-2.7-5.5.6.8 1.6 1.2 2.8 1.2 2.2 0 4.1-1.7 4.1-4.2C19.1 7.7 12 2.4 12 2.4z"/>
+        </svg>
+      </span>
+      <span class="brand__name">Dealer Training<small>Académie</small></span>
+    </div>
+
+    <nav class="nav">
+      <a href="#" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f0e9da" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Tableau de bord</a>
+      <a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 9h4"/></svg>
+        Entraînement</a>
+      <a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="7"/><path d="M12 13V9M9 2h6"/></svg>
+        Défis</a>
+      <a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 17l5-6 4 3 6-8"/></svg>
+        Progression</a>
+      <a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="#0a0d0b"/><circle cx="15" cy="17" r="2" fill="#0a0d0b"/></svg>
+        Réglages</a>
+    </nav>
+
+    <p class="nav__eyebrow">Modules</p>
+    <nav class="nav nav--small">
+      <a href="#">Texas Hold’em</a>
+      <a href="#">Blackjack</a>
+      <a href="#">Comptage de jetons</a>
+      <a href="#">Calcul mental</a>
+    </nav>
+
+  </aside>
+
+  <main class="main">
+
+    <!-- ================= LE HERO — l'image incrustée ================= -->
+    <section class="hero">
+      <img class="hero__photo" src="../assets/hero-table-1600.webp" width="1981" height="794"
+        alt="Table de poker : piles de jetons noir et or au monogramme, A♠ et K♥, bouton DEALER et sabot sur le feutre vert.">
+      <a class="hero__hit" href="#" aria-label="Continuer l’entraînement — Texas Hold’em, 20 exercices"></a>
+
+      <div class="hero__mobile">
+        <p class="hero__badge"><span>Formation croupier</span><b>Texas Hold’em</b></p>
+        <p class="hero__date">Jeudi 17 septembre</p>
+        <h1 class="hero__title">Bonsoir, <span>Farid</span></h1>
+        <p class="hero__lead">Prêt pour votre prochaine session ?</p>
+        <a class="btn" href="#">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l12 7-12 7z"/></svg>
+          Continuer l’entraînement
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11h13.2l-4.6-4.6L14 5l7 7-7 7-1.4-1.4 4.6-4.6H4z"/></svg>
+        </a>
+        <p class="hero__resume">Texas Hold’em · 20 exercices</p>
+      </div>
+    </section>
+
+    <!-- ================= LES CHIFFRES ================= -->
+    <div class="tiles">
+      <div class="tile">
+        <div class="tile__head"><span class="tile__label">Niveau actuel</span></div>
+        <div class="grade">
+          <span class="grade__ring">5</span>
+          <span class="grade__name">Croupier à l’essai</span>
+          <span class="grade__pct">95 %</span>
+        </div>
+        <div class="bar"><span style="width:95%"></span></div>
+        <p class="grade__next">Prochain grade : <b>Croupier junior</b>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f7e3ac" stroke-width="1.8"><path d="M5 12h13M13 7l5 5-5 5"/></svg>
+        </p>
+      </div>
+
+      <div class="tile">
+        <div class="tile__head">
+          <span class="tile__label">Série</span>
+          <span class="tile__icon"><svg viewBox="0 0 24 24"><path d="M12 3c2.5 3 4.5 5.2 4.5 8a4.5 4.5 0 0 1-9 0c0-1.3.5-2.4 1.3-3.5"/><path d="M12 21a3 3 0 0 0 3-3c0-1.6-1.5-2.6-3-4.5-1.5 1.9-3 2.9-3 4.5a3 3 0 0 0 3 3z"/></svg></span>
+        </div>
+        <div class="tile__figure"><b>12</b><small>jours</small></div>
+        <p class="tile__note">Record personnel : 22 jours</p>
+      </div>
+
+      <div class="tile">
+        <div class="tile__head">
+          <span class="tile__label">Exercices terminés</span>
+          <span class="tile__icon"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="9" cy="9" r="1.2" fill="#f7e3ac" stroke="none"/><circle cx="15" cy="15" r="1.2" fill="#f7e3ac" stroke="none"/><circle cx="15" cy="9" r="1.2" fill="#f7e3ac" stroke="none"/><circle cx="9" cy="15" r="1.2" fill="#f7e3ac" stroke="none"/></svg></span>
+        </div>
+        <div class="tile__figure"><b>68</b><small>/ 120</small></div>
+        <p class="tile__note">57 % de progression</p>
+      </div>
+
+      <div class="tile">
+        <div class="tile__head">
+          <span class="tile__label">Précision moyenne</span>
+          <span class="tile__icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></span>
+        </div>
+        <div class="tile__figure"><b>82</b><small>%</small></div>
+        <p class="tile__note">Sur les 50 dernières réponses</p>
+      </div>
+    </div>
+
+    <!-- ================= LE RESTE, pour voir la pluie entre les panneaux ================= -->
+    <div class="cols">
+      <section class="panel">
+        <div class="panel__head">
+          <h2 class="panel__title">Vos compétences · Texas Hold’em</h2>
+          <a class="link" href="#">Voir le parcours →</a>
+        </div>
+        <div class="skill"><span class="skill__name">Ordre d’action</span><span class="skill__bar"><span style="width:88%"></span></span><span class="skill__stage">Stade 3</span></div>
+        <div class="skill"><span class="skill__name">Reconnaissance des mains</span><span class="skill__bar"><span style="width:64%"></span></span><span class="skill__stage">Stade 2</span></div>
+        <div class="skill"><span class="skill__name">Déroulement du coup</span><span class="skill__bar"><span style="width:41%"></span></span><span class="skill__stage">Stade 2</span></div>
+        <div class="skill"><span class="skill__name">Paiement des mises</span><span class="skill__bar"><span style="width:18%"></span></span><span class="skill__stage">Stade 1</span></div>
+        <div class="skill"><span class="skill__name">Règlement Ultimate</span><span class="skill__bar"><span style="width:6%"></span></span><span class="skill__stage">Stade 1</span></div>
+      </section>
+
+      <section class="panel daily">
+        <span class="daily__xp">+50 XP</span>
+        <h3>Défi du jour</h3>
+        <p>Vingt paiements consécutifs sans erreur, chronomètre en main. Le défi se termine à minuit.</p>
+        <a class="btn btn--ghost" href="#">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l12 7-12 7z"/></svg>
+          Relever le défi
+        </a>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- Les deux réglages de la maquette : ils ne feraient pas partie du produit -->
+<div class="demo">
+  <span>Maquette</span>
+  <button id="mode" aria-pressed="false">Pluie · A (dust)</button>
+  <button id="pause" aria-pressed="false">Pause</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const SUITS = {
+    spade: 'M12 2.4C12 2.4 4.9 7.7 4.9 12.2c0 2.5 1.9 4.2 4.1 4.2 1.2 0 2.2-.4 2.8-1.2-.2 2.6-1.2 4.5-2.7 5.5h5.8c-1.5-1-2.5-2.9-2.7-5.5.6.8 1.6 1.2 2.8 1.2 2.2 0 4.1-1.7 4.1-4.2C19.1 7.7 12 2.4 12 2.4z',
+    heart: 'M12 20.9S3.4 15.6 3.4 9.9C3.4 7.1 5.5 5.1 8 5.1c1.8 0 3.2 1 4 2.4.8-1.4 2.2-2.4 4-2.4 2.5 0 4.6 2 4.6 4.8 0 5.7-8.6 11-8.6 11z',
+    diamond: 'M12 2.1l7.2 9.9L12 21.9 4.8 12z',
+    club: 'M12 2.5c-2.1 0-3.8 1.7-3.8 3.8 0 .7.2 1.4.5 2-.5-.3-1.2-.5-1.9-.5-2.1 0-3.8 1.7-3.8 3.8s1.7 3.8 3.8 3.8c1.2 0 2.2-.5 2.9-1.4-.1 2.4-1.1 4.2-2.5 5.2h9.6c-1.4-1-2.4-2.8-2.5-5.2.7.9 1.7 1.4 2.9 1.4 2.1 0 3.8-1.7 3.8-3.8s-1.7-3.8-3.8-3.8c-.7 0-1.4.2-1.9.5.3-.6.5-1.3.5-2 0-2.1-1.7-3.8-3.8-3.8z',
+  };
+  const NAMES = ['spade', 'heart', 'diamond', 'club'];
+
+  /** The same composition at every reload, as in the application. */
+  function rng(seed) {
+    let n = seed;
+    return () => { n = (n * 1103515245 + 12345) % 2147483648; return n / 2147483648; };
+  }
+
+  /* The rain covers the whole page, so it is sized against the window and not against a card. */
+  function paint() {
+    const random = rng(20260918);
+    const wide = window.innerWidth > 900;
+    const suits = wide ? 15 : 8;
+    const grains = wide ? 42 : 20;
+    const bits = [];
+
+    for (let i = 0; i < suits; i++) {
+      const size = Math.round(20 + random() * 44);          // 20 … 64 px
+      const far = size < 34;
+      bits.push(`<span class="drop${far ? ' drop--far' : ''}" style="
+        --x:${Math.round(random() * 96)}%; --s:${size}px;
+        --t:${Math.round(66 + random() * 62)}s; --delay:${-Math.round(random() * 110)}s;
+        --dim:${(0.5 + random() * 0.42).toFixed(2)};
+        --drift:${Math.round(8 + random() * 22)}px; --spin:${Math.round(2 + random() * 6)}deg;
+        --sway:${Math.round(10 + random() * 10)}s;">
+        <span class="drop__sway"><svg viewBox="0 0 24 24"><path d="${SUITS[NAMES[i % 4]]}"/></svg></span></span>`);
+    }
+    for (let i = 0; i < grains; i++) {
+      bits.push(`<span class="grain" style="
+        --x:${Math.round(random() * 99)}%; --d:${(1.4 + random() * 2).toFixed(1)}px;
+        --halo:${(3 + random() * 5).toFixed(1)}px;
+        --t:${Math.round(38 + random() * 48)}s; --delay:${-Math.round(random() * 90)}s;
+        --dim:${(0.4 + random() * 0.5).toFixed(2)}; --flick:${(3 + random() * 6).toFixed(1)}s;"></span>`);
+    }
+    document.getElementById('rain').innerHTML = bits.join('');
+  }
+
+  paint();
+  let w = window.innerWidth;
+  window.addEventListener('resize', () => {
+    if (Math.abs(window.innerWidth - w) > 200) { w = window.innerWidth; paint(); }
+  });
+
+  // Deux lectures possibles de « la pluie 1 » : le trait d'or, ou les enseignes pleines de la photo
+  const mode = document.getElementById('mode');
+  mode.addEventListener('click', () => {
+    const full = document.body.dataset.rain === 'full';
+    document.body.dataset.rain = full ? 'dust' : 'full';
+    mode.textContent = full ? 'Pluie · A (dust)' : 'Pluie · pleine (photo)';
+    mode.setAttribute('aria-pressed', String(!full));
+  });
+
+  const pause = document.getElementById('pause');
+  pause.addEventListener('click', () => {
+    const on = document.body.dataset.paused === 'true';
+    document.body.dataset.paused = on ? 'false' : 'true';
+    pause.textContent = on ? 'Pause' : 'Reprendre';
+    pause.setAttribute('aria-pressed', String(!on));
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hero 2 — Dealer Desk · Dealer Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap">
+<link rel="stylesheet" href="../shared/stage.css">
+<link rel="stylesheet" href="hero.css">
+<style>
+/* ==========================================================================
+   HERO 2 — DEALER DESK
+   Le poste du croupier, vu de près : le rack de jetons, le bouton DEALER, deux cartes face
+   cachée, une petite pile. Pas de bord de table : on est derrière le matériel, pas devant le jeu.
+   Lumière rasante venue de la droite, ombres longues. Tout est vectoriel.
+   ========================================================================== */
+.band--desk { min-height: 340px; background: #0a0b0a; }
+.band--desk .band__text { text-shadow: 0 1px 26px rgba(4, 5, 4, 0.9); }
+.dash--phone .band--desk .band__art { opacity: 0.6; }
+.dash--phone .band--desk .objects { display: none; }   /* sur téléphone on garde la lumière et le feutre */
+</style>
+</head>
+<body>
+
+<template id="art">
+<svg viewBox="0 0 1200 380" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">
+  <defs>
+    <!-- Le feutre, éclairé en rasant depuis la droite -->
+    <radialGradient id="deskFelt" cx=".78" cy=".1" r=".95">
+      <stop offset="0" stop-color="#23402f"/><stop offset=".35" stop-color="#182c20"/>
+      <stop offset=".7" stop-color="#101b15"/><stop offset="1" stop-color="#0a0f0c"/>
+    </radialGradient>
+    <linearGradient id="streak" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffeccd" stop-opacity="0"/><stop offset=".55" stop-color="#ffeccd" stop-opacity=".1"/>
+      <stop offset="1" stop-color="#ffeccd" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="tray" x1=".5" y1="0" x2=".5" y2="1">
+      <stop offset="0" stop-color="#2a211a"/><stop offset=".45" stop-color="#191411"/><stop offset="1" stop-color="#0d0a08"/>
+    </linearGradient>
+    <linearGradient id="btnFace" x1=".2" y1="0" x2=".8" y2="1">
+      <stop offset="0" stop-color="#fdf9ef"/><stop offset=".5" stop-color="#ece5d4"/><stop offset="1" stop-color="#c8bfa8"/>
+    </linearGradient>
+    <linearGradient id="fade2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0a0b0a"/><stop offset=".4" stop-color="#0a0b0a" stop-opacity=".9"/>
+      <stop offset=".78" stop-color="#0a0b0a" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Le dos des cartes : un tramé champagne serré, un cadre, un losange -->
+    <pattern id="back" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="9" height="9" fill="#241c15"/>
+      <path d="M0 4.5h9M4.5 0v9" stroke="rgba(226,207,174,.3)" stroke-width=".9"/>
+    </pattern>
+    <!-- La trame du feutre : à peine visible, mais elle enlève l'aspect plastique -->
+    <pattern id="weave" width="6" height="6" patternUnits="userSpaceOnUse">
+      <circle cx="1.5" cy="1.5" r=".55" fill="rgba(255,255,255,.035)"/>
+      <circle cx="4.5" cy="4.5" r=".55" fill="rgba(0,0,0,.09)"/>
+    </pattern>
+    <filter id="soft2" x="-35%" y="-35%" width="170%" height="170%"><feGaussianBlur stdDeviation="14"/></filter>
+    <filter id="tight2" x="-45%" y="-45%" width="190%" height="190%"><feGaussianBlur stdDeviation="5"/></filter>
+
+    <!-- Un tube du rack : le logement, la colonne de tranches de jetons, la face du jeton du dessus -->
+    <g id="slot">
+      <rect x="-31" y="-66" width="62" height="82" rx="7" fill="#0b0806"/>
+      <rect x="-26" y="-60" width="52" height="72" rx="5" fill="var(--edge)"/>
+      <g stroke="rgba(0,0,0,.34)" stroke-width="1">
+        <path d="M-26 -50h52"/><path d="M-26 -40h52"/><path d="M-26 -30h52"/>
+        <path d="M-26 -20h52"/><path d="M-26 -10h52"/><path d="M-26 0h52"/>
+      </g>
+      <g stroke="rgba(255,255,255,.1)" stroke-width=".7">
+        <path d="M-26 -49h52"/><path d="M-26 -39h52"/><path d="M-26 -29h52"/>
+        <path d="M-26 -19h52"/><path d="M-26 -9h52"/><path d="M-26 1h52"/>
+      </g>
+      <ellipse cx="0" cy="-60" rx="26" ry="8.5" fill="var(--face)"/>
+      <ellipse cx="0" cy="-60" rx="17" ry="5.5" fill="none" stroke="rgba(0,0,0,.24)" stroke-width="1"/>
+    </g>
+  </defs>
+
+  <!-- Le plan de travail : feutre, trame, lumière rasante -->
+  <rect x="0" y="0" width="1200" height="380" fill="url(#deskFelt)"/>
+  <rect x="0" y="0" width="1200" height="380" fill="url(#weave)"/>
+  <g transform="rotate(-8 700 120)"><ellipse cx="760" cy="120" rx="520" ry="150" fill="url(#streak)"/></g>
+
+  <g class="objects">
+  <!-- Le rack : cinq tubes, trois valeurs. C'est l'objet signature du poste -->
+  <ellipse cx="960" cy="322" rx="270" ry="40" fill="#030403" opacity=".85" filter="url(#soft2)"/>
+  <g transform="translate(950 296)">
+    <path d="M-250 -96 h500 l22 96 h-544 z" fill="url(#tray)"/>
+    <path d="M-250 -96 h500 l22 96 h-544 z" fill="none" stroke="rgba(226,207,174,.22)" stroke-width="1"/>
+    <path d="M-236 -88 h472" stroke="rgba(226,207,174,.14)" stroke-width="1"/>
+    <g transform="translate(0 6)">
+      <g transform="translate(-196 0)" style="--edge:#ded5c0;--face:#f4eddd"><use href="#slot"/></g>
+      <g transform="translate(-98 0)" style="--edge:#a98d68;--face:#dcc096"><use href="#slot"/></g>
+      <g transform="translate(0 0)" style="--edge:#1e382b;--face:#2a4c3c"><use href="#slot"/></g>
+      <g transform="translate(98 0)" style="--edge:#ded5c0;--face:#f4eddd"><use href="#slot"/></g>
+      <g transform="translate(196 0)" style="--edge:#a98d68;--face:#dcc096"><use href="#slot"/></g>
+    </g>
+  </g>
+
+  <!-- Deux cartes face cachée, prêtes à être brûlées -->
+  <ellipse cx="558" cy="308" rx="92" ry="20" fill="#030403" opacity=".8" filter="url(#tight2)"/>
+  <g transform="translate(528 244) rotate(-9)">
+    <rect x="-40" y="-56" width="80" height="112" rx="7" fill="url(#back)" stroke="rgba(226,207,174,.4)" stroke-width="1"/>
+    <rect x="-33" y="-49" width="66" height="98" rx="4" fill="none" stroke="rgba(226,207,174,.32)" stroke-width="1"/>
+    <path transform="translate(-9 -10) scale(1.5)" fill="rgba(240,226,199,.75)" d="M12 2.1l7.2 9.9L12 21.9 4.8 12z"/>
+  </g>
+  <g transform="translate(588 254) rotate(6)">
+    <rect x="-40" y="-56" width="80" height="112" rx="7" fill="url(#back)" stroke="rgba(226,207,174,.4)" stroke-width="1"/>
+    <rect x="-33" y="-49" width="66" height="98" rx="4" fill="none" stroke="rgba(226,207,174,.32)" stroke-width="1"/>
+    <path transform="translate(-9 -10) scale(1.5)" fill="rgba(240,226,199,.75)" d="M12 2.1l7.2 9.9L12 21.9 4.8 12z"/>
+  </g>
+
+  <!-- Le bouton DEALER, posé à plat, vu en perspective -->
+  <ellipse cx="712" cy="352" rx="62" ry="15" fill="#030403" opacity=".8" filter="url(#tight2)"/>
+  <g transform="translate(708 342)">
+    <path d="M-58 -2 a58 25 0 0 0 116 0 v-9 a58 25 0 0 1 -116 0 z" fill="#b9af96"/>
+    <ellipse cx="0" cy="-11" rx="58" ry="25" fill="url(#btnFace)" stroke="#a89e86" stroke-width="1"/>
+    <ellipse cx="0" cy="-11" rx="49" ry="20" fill="none" stroke="rgba(30,26,20,.28)" stroke-width="1.2"/>
+    <ellipse cx="0" cy="-11" rx="44" ry="17.5" fill="none" stroke="rgba(30,26,20,.14)" stroke-width="1"/>
+    <text x="0" y="-6" text-anchor="middle" font-family="DM Sans, system-ui, sans-serif" font-size="14"
+      font-weight="600" letter-spacing="4" fill="#2b2620">DEALER</text>
+  </g>
+
+  <!-- Une petite pile de côté, la mise en cours -->
+  <ellipse cx="452" cy="336" rx="48" ry="13" fill="#030403" opacity=".75" filter="url(#tight2)"/>
+  <g transform="translate(450 330)">
+    <g fill="#a98d68">
+      <ellipse cx="0" cy="0" rx="30" ry="10"/><rect x="-30" y="-7" width="60" height="7"/>
+    </g>
+    <g fill="#dcc096">
+      <ellipse cx="0" cy="-7" rx="30" ry="10"/>
+    </g>
+    <g fill="#ab8f6a"><rect x="-30" y="-14" width="60" height="7"/></g>
+    <ellipse cx="0" cy="-14" rx="30" ry="10" fill="#dcc096"/>
+    <g fill="#ab8f6a"><rect x="-30" y="-21" width="60" height="7"/></g>
+    <ellipse cx="0" cy="-21" rx="30" ry="10" fill="#e6cda4"/>
+    <ellipse cx="0" cy="-21" rx="19" ry="6.2" fill="none" stroke="rgba(0,0,0,.22)" stroke-width="1"/>
+  </g>
+  </g>
+
+  <!-- Le voile de gauche -->
+  <rect x="0" y="0" width="720" height="380" fill="url(#fade2)"/>
+</svg>
+</template>
+
+<div class="doc">
+  <header class="doc__head">
+    <div>
+      <p class="doc__eyebrow">Hero · direction 2</p>
+      <h1 class="doc__title">Dealer Desk</h1>
+      <p class="doc__lead">Le poste de travail du croupier, vu de près&nbsp;: le rack de jetons et ses cinq tubes, le bouton DEALER posé à plat, deux cartes face cachée au dos champagne, une petite pile de côté. Pas de bord de table&nbsp;: on est <em>derrière le matériel</em>, du côté du professionnel, et non devant le jeu.</p>
+    </div>
+  </header>
+  <nav class="doc__nav">
+    <a href="index.html">↤ Comparer les 3</a>
+    <a href="1-premium-dealer-table.html">1 · Premium Dealer Table</a>
+    <a href="2-dealer-desk.html" aria-current="page">2 · Dealer Desk</a>
+    <a href="3-abstract-luxury.html">3 · Abstract Casino Luxury</a>
+    <a href="../index.html">Toutes les explorations</a>
+  </nav>
+
+  <p class="section__label">Desktop — dessiné à 1440 px, réduit pour tenir dans la page</p>
+  <div class="mock"><div class="mock__scale" id="desk"></div></div>
+
+  <p class="section__label">Téléphone 390</p>
+  <div id="phone"></div>
+
+  <div class="notes">
+    <div class="note">
+      <h3>Technique</h3>
+      <p>SVG unique, ~6&nbsp;ko. Deux trames (<code>&lt;pattern&gt;</code>)&nbsp;: la toile du feutre et le tramé au dos des cartes. Un tube de rack défini une fois, réutilisé cinq fois avec trois valeurs de jetons.</p>
+    </div>
+    <div class="note">
+      <h3>Responsive</h3>
+      <p>Le rack est ancré en bas à droite&nbsp;: la bande perd d’abord le dernier tube, puis la petite pile. Sur téléphone, on ne garde que le feutre et la lumière rasante&nbsp;— le matériel disparaît proprement.</p>
+    </div>
+    <div class="note">
+      <h3>Ce qu’elle raconte</h3>
+      <p>C’est la direction la plus <em>métier</em>&nbsp;: elle parle du poste, du geste, du matériel. Elle dit «&nbsp;formation professionnelle&nbsp;» là où la direction 1 dit «&nbsp;table de jeu&nbsp;».</p>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/stage.js"></script>
+<script>
+(function () {
+  const art = document.getElementById('art').innerHTML;
+  const phoneArt = art.replace('viewBox="0 0 1200 380"', 'viewBox="620 0 580 380"');
+
+  function dash(kind) {
+    const phone = kind === 'phone';
+    const side = phone ? '' : `
+      <div class="dash__side">
+        <div class="dash__brand"><span class="dash__mark">DT</span><span class="dash__name">Dealer Training<small>Académie</small></span></div>
+        <div class="dash__nav"><span>Tableau de bord</span><span>Entraînement</span><span>Défis</span><span>Progression</span><span>Réglages</span></div>
+        <p class="dash__motto">« Maîtriser la table, maîtriser le jeu, maîtriser soi. »</p>
+      </div>`;
+    return `<div class="dash dash--${kind}"><div style="display:flex">${side}
+      <div class="dash__main">
+        <section class="band band--desk">
+          <div class="band__art">${phone ? phoneArt : art}</div>
+          <p class="band__badge"><span>Formation croupier</span><b>Texas Hold’em</b></p>
+          <div class="band__text">
+            <p class="band__date">Jeudi 17 septembre</p>
+            <h2 class="band__title">Bonsoir, Farid</h2>
+            <p class="band__lead">Prêt pour votre prochaine session ?</p>
+            <span class="band__cta">▶ Continuer l’entraînement</span>
+            <p class="band__resume">Texas Hold’em · 20 exercices</p>
+          </div>
+        </section>
+        <div class="dash__tiles">
+          <div class="dash__tile"><span>XP</span><b>0</b></div>
+          <div class="dash__tile"><span>Série</span><b>—</b></div>
+          <div class="dash__tile"><span>Précision</span><b>—</b></div>
+        </div>
+      </div></div></div>`;
+  }
+
+  document.getElementById('desk').innerHTML = dash('desktop');
+  DX.fit(document.getElementById('desk'), 1440);
+  document.getElementById('phone').innerHTML = dash('phone');
+})();
+</script>
+</body>
+</html>

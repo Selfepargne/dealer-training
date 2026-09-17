@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hero — dégradé du milieu vers la gauche · Dealer Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap">
+<link rel="stylesheet" href="shared/stage.css">
+<style>
+/* ==========================================================================
+   HERO — LA NOUVELLE PHOTOGRAPHIE, DÉGRADÉE DU MILIEU VERS LA GAUCHE
+   La photographie ne porte plus de titre : le voile n'a plus rien à éteindre.
+   Il ne sert qu'à porter le texte, et s'éteint progressivement en arrivant au milieu.
+   Quatre réglages du même dégradé, à la largeur réelle du tableau de bord (1440 px).
+   Rien ici ne touche à l'application.
+   ========================================================================== */
+
+:root {
+  --gold-hi: #f7e3ac;
+  --gold: #e3c57f;
+  --gold-mid: #d4ad57;
+  --gold-lo: #b8913f;
+  --gold-line: rgba(226, 197, 127, 0.34);
+}
+body { background: #0d0d0e; }
+
+.stage__frame { position: relative; overflow: hidden; }
+.stage__frame > * { transform-origin: top left; }
+
+/* Le cadre du tableau de bord à 1440 : barre latérale 262, marge 48 */
+.page { width: 1440px; display: flex; background: #0d0d0e; }
+.page__side { flex: 0 0 262px; border-right: 1px solid rgba(237, 230, 214, 0.07); }
+.page__main { flex: 1 1 auto; padding: 30px 48px 34px; }
+
+/* ---- La bande ------------------------------------------------------------------------------- */
+
+.band {
+  position: relative;
+  overflow: hidden;
+  min-height: 430px;
+  padding: 48px;
+  border-radius: 16px;
+  background: #060806;
+  box-shadow: 0 40px 80px -50px #000;
+}
+.band__photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 100% 50%; }
+.band__veil { position: absolute; inset: 0; }
+
+.band__body { position: relative; z-index: 2; max-width: 34ch; }
+.band__date { margin: 0 0 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); }
+.band__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 3.6rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 2px 26px rgba(0, 0, 0, 0.8);
+}
+.band__title em { font-style: normal; color: var(--gold-hi); }
+.band__lead { margin: 20px 0 30px; font-size: 1.0625rem; color: #d9d3c6; }
+.band__cta {
+  display: inline-flex; align-items: center; gap: 14px;
+  padding: 0 24px;
+  min-height: 48px;
+  border: 1px solid var(--gold-lo);
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--gold-hi) 0%, var(--gold) 42%, var(--gold-mid) 76%, #c59f4c 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 14px 30px -18px rgba(0, 0, 0, 0.95);
+  color: #1b1408;
+  font-size: 13px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+}
+.band__resume { position: relative; z-index: 2; margin: 16px 0 0; font-size: 13px; color: #a29d93; }
+.band__quote {
+  position: relative;
+  z-index: 2;
+  max-width: 26ch;
+  margin: 32px 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.15rem;
+  line-height: 1.35;
+  color: #cfc7b6;
+}
+.band__quote::after { content: ""; display: block; width: 68px; height: 1px; margin-top: 16px; background: var(--gold-line); }
+
+/* La plaque du module, seulement dans la variante qui la teste */
+.band__badge {
+  position: absolute;
+  top: 48px; right: 48px;
+  z-index: 2;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  margin: 0;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+  color: #a29d93;
+}
+.band__badge b { font-weight: 600; color: var(--gold); }
+.band__badge::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -22px -60px -26px -210px;
+  border-radius: 14px;
+  background: radial-gradient(120% 150% at 78% 40%, rgb(5, 7, 5) 0%, rgba(5, 7, 5, 0.88) 52%, rgba(5, 7, 5, 0) 100%);
+}
+
+/* ==========================================================================
+   Le dégradé : noir à l'extrême gauche, éteint au milieu.
+   Les paliers suivent une courbe douce — un dégradé à deux arrêts se verrait par bandes.
+   ========================================================================== */
+
+/* 1 — jusqu'au milieu (50 %), exactement ce qui est demandé */
+.band--m50 .band__veil {
+  background: linear-gradient(90deg,
+    rgb(5, 7, 5) 0%,
+    rgba(5, 7, 5, 0.985) 8%,
+    rgba(5, 7, 5, 0.95) 17%,
+    rgba(5, 7, 5, 0.88) 25%,
+    rgba(5, 7, 5, 0.76) 32%,
+    rgba(5, 7, 5, 0.58) 38%,
+    rgba(5, 7, 5, 0.38) 43%,
+    rgba(5, 7, 5, 0.18) 47%,
+    rgba(5, 7, 5, 0) 50%);
+}
+
+/* 2 — un peu plus court (42 %) : on voit davantage de feutre derrière le titre */
+.band--m42 .band__veil {
+  background: linear-gradient(90deg,
+    rgb(5, 7, 5) 0%,
+    rgba(5, 7, 5, 0.98) 7%,
+    rgba(5, 7, 5, 0.93) 14%,
+    rgba(5, 7, 5, 0.84) 21%,
+    rgba(5, 7, 5, 0.7) 27%,
+    rgba(5, 7, 5, 0.5) 32%,
+    rgba(5, 7, 5, 0.3) 36%,
+    rgba(5, 7, 5, 0.13) 39%,
+    rgba(5, 7, 5, 0) 42%);
+}
+
+/* 3 — plus appuyé (58 %) : le confort de lecture maximal, même avec un prénom long */
+.band--m58 .band__veil {
+  background: linear-gradient(90deg,
+    rgb(5, 7, 5) 0%,
+    rgba(5, 7, 5, 0.99) 10%,
+    rgba(5, 7, 5, 0.96) 20%,
+    rgba(5, 7, 5, 0.91) 29%,
+    rgba(5, 7, 5, 0.82) 37%,
+    rgba(5, 7, 5, 0.66) 44%,
+    rgba(5, 7, 5, 0.44) 50%,
+    rgba(5, 7, 5, 0.2) 55%,
+    rgba(5, 7, 5, 0) 58%);
+}
+
+/* La légende de chaque variante */
+.caption { display: flex; align-items: baseline; gap: 16px; margin: 0 0 12px; }
+.caption span {
+  flex: 0 0 auto; width: 30px; height: 30px;
+  display: grid; place-items: center;
+  border: 1px solid var(--gold-line); border-radius: 50%;
+  font-family: var(--font-display); color: var(--gold-hi);
+}
+.caption h2 { margin: 0; font-family: var(--font-display); font-size: 1.35rem; font-weight: 500; color: var(--ivory); }
+.caption p { margin: 0; max-width: 100ch; color: var(--text-2); font-size: var(--fs-small); line-height: 1.55; }
+.caption p b { color: var(--gold); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="doc">
+  <header class="doc__head">
+    <div>
+      <p class="doc__eyebrow">Hero du tableau de bord · nouvelle photographie</p>
+      <h1 class="doc__title">Dégradé du milieu vers la gauche</h1>
+      <p class="doc__lead">La photographie ne porte plus de titre&nbsp;: le voile n’a plus rien à éteindre, il ne sert qu’à porter le texte. Il part donc du noir à l’extrême gauche et s’efface en arrivant au milieu. Trois réglages du même dégradé, puis la question de la plaque du coin.</p>
+    </div>
+  </header>
+  <nav class="doc__nav">
+    <a href="index.html">↤ Toutes les explorations</a>
+    <a href="hero-veil.html">L’étape précédente</a>
+    <a href="dashboard.html">Maquette du tableau de bord</a>
+  </nav>
+
+  <div id="variants"></div>
+</div>
+
+<script src="shared/stage.js"></script>
+<script>
+(function () {
+  const PHOTO = 'assets/hero-v2-1600.webp';
+
+  const VARIANTS = [
+    { key: 'm50', letter: '1', badge: false,
+      title: 'Jusqu’au milieu — 50 %',
+      text: 'Exactement ce qui est demandé&nbsp;: <b>noir à l’extrême gauche, éteint au milieu</b>, par paliers doux pour qu’aucune bande ne se voie. Le titre et le bouton reposent sur du noir, les jetons et les cartes restent intacts.' },
+    { key: 'm42', letter: '2', badge: false,
+      title: 'Plus court — 42 %',
+      text: 'Le dégradé s’éteint avant le milieu&nbsp;: <b>on voit le feutre et les enseignes dorées derrière le titre</b>. La plus lumineuse des trois. À choisir si vous voulez sentir la table dès la gauche.' },
+    { key: 'm58', letter: '3', badge: false,
+      title: 'Plus appuyé — 58 %',
+      text: 'Le dégradé va jusqu’au premier tas de jetons. <b>Le confort de lecture maximal</b>, y compris pour un prénom long ou une phrase plus bavarde en anglais.' },
+    { key: 'm50', letter: '4', badge: true,
+      title: '50 % + la plaque du module',
+      text: 'La photographie porte déjà «&nbsp;FORMATION CROUPIER&nbsp;» gravé en haut à droite. Si l’on veut afficher <b>le module en cours</b> (qui change, et se traduit), il faut une plaque HTML par-dessus, avec son fond. Sans elle, le module reste lisible sous le bouton&nbsp;: «&nbsp;Texas Hold’em · 20 exercices&nbsp;».' },
+  ];
+
+  const band = (v) => `
+    <section class="band band--${v.key}">
+      <img class="band__photo" src="${PHOTO}" alt="">
+      <span class="band__veil"></span>
+      ${v.badge ? '<p class="band__badge"><span>Formation croupier</span><b>Texas Hold’em</b></p>' : ''}
+      <div class="band__body">
+        <p class="band__date">Jeudi 17 septembre</p>
+        <h2 class="band__title">Bonsoir, <em>Farid</em></h2>
+        <p class="band__lead">Prêt pour votre prochaine session ?</p>
+        <span class="band__cta">▶ Continuer l’entraînement →</span>
+        <p class="band__resume">Texas Hold’em · 20 exercices</p>
+      </div>
+      <p class="band__quote">« Maîtriser la table, maîtriser le jeu, maîtriser soi. »</p>
+    </section>`;
+
+  document.getElementById('variants').innerHTML = VARIANTS.map((v) => `
+    <p class="section__label">Variante ${v.letter}</p>
+    <div class="caption">
+      <span>${v.letter}</span>
+      <div><h2>${v.title}</h2><p>${v.text}</p></div>
+    </div>
+    <div class="stage"><div class="stage__frame" data-fit>
+      <div class="page"><div class="page__side"></div><div class="page__main">${band(v)}</div></div>
+    </div></div>`).join('');
+
+  document.querySelectorAll('[data-fit]').forEach((host) => DX.fit(host, 1440));
+})();
+</script>
+</body>
+</html>

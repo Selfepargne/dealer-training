@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hero 1 — Premium Dealer Table · Dealer Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap">
+<link rel="stylesheet" href="../shared/stage.css">
+<link rel="stylesheet" href="hero.css">
+<style>
+/* ==========================================================================
+   HERO 1 — PREMIUM DEALER TABLE
+   Un morceau de table vu légèrement de dessus, cadré à droite : rail cuir surpiqué, feutre
+   éclairé par une seule lampe, deux cartes en éventail, trois piles de jetons, le sabot au bord.
+   Tout est vectoriel : dégradés, ombres floutées, un jeton et une carte réutilisés. Aucune image.
+   ========================================================================== */
+.band--table { min-height: 340px; background: #090a09; }
+.band--table .band__text { text-shadow: 0 1px 26px rgba(4, 5, 4, 0.85); }
+/* Sur téléphone la table n'est plus qu'une présence : un recadrage, et on baisse la lumière */
+.dash--phone .band--table .band__art { opacity: 0.55; }
+.dash--phone .band--table .objects { display: none; }  /* sur téléphone, le feutre suffit */
+</style>
+</head>
+<body>
+
+<!-- L'illustration, écrite une fois, posée dans les deux maquettes (le téléphone en recadre une partie) -->
+<template id="art">
+<svg viewBox="0 0 1200 380" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">
+  <defs>
+    <radialGradient id="felt" cx=".54" cy=".18" r=".85">
+      <stop offset="0" stop-color="#1f3a2a"/><stop offset=".4" stop-color="#16281d"/>
+      <stop offset=".75" stop-color="#111d16"/><stop offset="1" stop-color="#0b120e"/>
+    </radialGradient>
+    <linearGradient id="leather" x1=".2" y1="0" x2=".8" y2="1">
+      <stop offset="0" stop-color="#261e16"/><stop offset=".5" stop-color="#181311"/><stop offset="1" stop-color="#0d0a08"/>
+    </linearGradient>
+    <radialGradient id="lamp" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#ffeccd" stop-opacity=".16"/><stop offset=".5" stop-color="#e8cfa6" stop-opacity=".05"/>
+      <stop offset="1" stop-color="#e8cfa6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="face" x1=".1" y1="0" x2=".9" y2="1">
+      <stop offset="0" stop-color="#fbf7ec"/><stop offset=".55" stop-color="#efe9da"/><stop offset="1" stop-color="#d6cdb8"/>
+    </linearGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#090a09"/><stop offset=".45" stop-color="#090a09" stop-opacity=".88"/>
+      <stop offset=".8" stop-color="#090a09" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Les trois valeurs de la maison : ivoire, bronze, vert profond -->
+    <linearGradient id="c-ivory-top" x1=".2" y1="0" x2=".8" y2="1"><stop offset="0" stop-color="#f4eddd"/><stop offset="1" stop-color="#c9bfa8"/></linearGradient>
+    <linearGradient id="c-ivory-side" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0d7c2"/><stop offset="1" stop-color="#958d7c"/></linearGradient>
+    <linearGradient id="c-bronze-top" x1=".2" y1="0" x2=".8" y2="1"><stop offset="0" stop-color="#dcc096"/><stop offset="1" stop-color="#8a7150"/></linearGradient>
+    <linearGradient id="c-bronze-side" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ab8f6a"/><stop offset="1" stop-color="#65523a"/></linearGradient>
+    <linearGradient id="c-green-top" x1=".2" y1="0" x2=".8" y2="1"><stop offset="0" stop-color="#2a4c3c"/><stop offset="1" stop-color="#13241c"/></linearGradient>
+    <linearGradient id="c-green-side" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e382b"/><stop offset="1" stop-color="#0d1812"/></linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="16"/></filter>
+    <filter id="tight" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="6"/></filter>
+
+    <!-- Un jeton vu de trois quarts : la tranche, trois encoches, le dessus et son anneau -->
+    <g id="chip">
+      <ellipse cx="0" cy="0" rx="32" ry="10.5" fill="var(--side)"/>
+      <rect x="-32" y="-8" width="64" height="8" fill="var(--side)"/>
+      <g fill="var(--notch)">
+        <rect x="-25" y="-8" width="7" height="8" rx="1"/>
+        <rect x="-3.5" y="-8" width="7" height="8" rx="1"/>
+        <rect x="18" y="-8" width="7" height="8" rx="1"/>
+      </g>
+      <ellipse cx="0" cy="-8" rx="32" ry="10.5" fill="var(--top)"/>
+      <ellipse cx="0" cy="-8" rx="21" ry="6.9" fill="none" stroke="rgba(0,0,0,.26)" stroke-width="1"/>
+      <ellipse cx="0" cy="-8.7" rx="21" ry="6.9" fill="none" stroke="rgba(255,255,255,.14)" stroke-width=".8"/>
+    </g>
+    <g id="card">
+      <rect x="-42" y="-59" width="84" height="118" rx="7" fill="url(#face)" stroke="#b9af96" stroke-width="1"/>
+      <rect x="-37" y="-54" width="74" height="108" rx="4" fill="none" stroke="rgba(120,100,70,.16)" stroke-width="1"/>
+    </g>
+  </defs>
+
+  <!-- Le plateau : ombre au sol, rail cuir, surpiqûre, feutre, lampe -->
+  <ellipse cx="840" cy="352" rx="530" ry="248" fill="#040504" opacity=".9" filter="url(#soft)"/>
+  <ellipse cx="830" cy="330" rx="520" ry="236" fill="url(#leather)"/>
+  <ellipse cx="830" cy="330" rx="520" ry="236" fill="none" stroke="rgba(226,207,174,.16)" stroke-width="1"/>
+  <ellipse cx="830" cy="328" rx="492" ry="214" fill="none" stroke="rgba(226,207,174,.1)" stroke-width="1" stroke-dasharray="7 10"/>
+  <ellipse cx="830" cy="326" rx="470" ry="198" fill="url(#felt)"/>
+  <ellipse cx="830" cy="326" rx="470" ry="198" fill="none" stroke="rgba(194,162,122,.26)" stroke-width="1"/>
+  <ellipse cx="900" cy="150" rx="430" ry="250" fill="url(#lamp)"/>
+
+  <g class="objects">
+  <!-- Deux cartes, face visible, légèrement en éventail -->
+  <ellipse cx="736" cy="338" rx="112" ry="24" fill="#040504" opacity=".8" filter="url(#tight)"/>
+  <g transform="translate(694 258) rotate(-11)">
+    <use href="#card"/>
+    <text x="-31" y="-34" font-family="Cormorant Garamond, Georgia, serif" font-size="28" fill="#1d1d1f">A</text>
+    <path transform="translate(-28 -22) scale(.58)" fill="#1d1d1f"
+      d="M12 2.4C12 2.4 4.9 7.7 4.9 12.2c0 2.5 1.9 4.2 4.1 4.2 1.2 0 2.2-.4 2.8-1.2-.2 2.6-1.2 4.5-2.7 5.5h5.8c-1.5-1-2.5-2.9-2.7-5.5.6.8 1.6 1.2 2.8 1.2 2.2 0 4.1-1.7 4.1-4.2C19.1 7.7 12 2.4 12 2.4z"/>
+    <path transform="translate(-15 4) scale(1.28)" fill="#1d1d1f"
+      d="M12 2.4C12 2.4 4.9 7.7 4.9 12.2c0 2.5 1.9 4.2 4.1 4.2 1.2 0 2.2-.4 2.8-1.2-.2 2.6-1.2 4.5-2.7 5.5h5.8c-1.5-1-2.5-2.9-2.7-5.5.6.8 1.6 1.2 2.8 1.2 2.2 0 4.1-1.7 4.1-4.2C19.1 7.7 12 2.4 12 2.4z"/>
+  </g>
+  <g transform="translate(782 250) rotate(7)">
+    <use href="#card"/>
+    <text x="-31" y="-34" font-family="Cormorant Garamond, Georgia, serif" font-size="28" fill="#96222b">K</text>
+    <path transform="translate(-28 -22) scale(.58)" fill="#96222b"
+      d="M12 20.9S3.4 15.6 3.4 9.9C3.4 7.1 5.5 5.1 8 5.1c1.8 0 3.2 1 4 2.4.8-1.4 2.2-2.4 4-2.4 2.5 0 4.6 2 4.6 4.8 0 5.7-8.6 11-8.6 11z"/>
+    <path transform="translate(-15 2) scale(1.28)" fill="#96222b"
+      d="M12 20.9S3.4 15.6 3.4 9.9C3.4 7.1 5.5 5.1 8 5.1c1.8 0 3.2 1 4 2.4.8-1.4 2.2-2.4 4-2.4 2.5 0 4.6 2 4.6 4.8 0 5.7-8.6 11-8.6 11z"/>
+  </g>
+
+  <!-- Trois piles inégales, comme un tapis en cours de partie -->
+  <ellipse cx="990" cy="336" rx="150" ry="28" fill="#040504" opacity=".75" filter="url(#tight)"/>
+  <g transform="translate(920 330)" style="--top:url(#c-ivory-top);--side:url(#c-ivory-side);--notch:rgba(58,50,36,.45)">
+    <use href="#chip"/><use href="#chip" y="-7"/><use href="#chip" y="-14"/><use href="#chip" y="-21"/>
+    <use href="#chip" y="-28"/><use href="#chip" y="-35"/><use href="#chip" y="-42"/>
+  </g>
+  <g transform="translate(992 338)" style="--top:url(#c-bronze-top);--side:url(#c-bronze-side);--notch:rgba(247,238,220,.4)">
+    <use href="#chip"/><use href="#chip" y="-7"/><use href="#chip" y="-14"/><use href="#chip" y="-21"/><use href="#chip" y="-28"/>
+  </g>
+  <g transform="translate(1062 344)" style="--top:url(#c-green-top);--side:url(#c-green-side);--notch:rgba(230,222,205,.35)">
+    <use href="#chip"/><use href="#chip" y="-7"/><use href="#chip" y="-14"/>
+  </g>
+
+  <!-- Le sabot, au bord du cadre : on n'en voit que l'angle -->
+  <g transform="translate(1128 176)">
+    <path d="M-50 -6 h100 a8 8 0 0 1 8 8 v66 a10 10 0 0 1 -10 10 h-96 a10 10 0 0 1 -10 -10 v-66 a8 8 0 0 1 8 -8 z"
+      fill="#191310" stroke="rgba(226,207,174,.2)" stroke-width="1"/>
+    <path d="M-42 12 h84" stroke="rgba(226,207,174,.16)" stroke-width="1"/>
+    <rect x="-28" y="-24" width="56" height="20" rx="4" fill="url(#face)" opacity=".92" stroke="#b9af96" stroke-width="1"/>
+    <path transform="translate(-7 26) scale(1.4)" fill="rgba(226,207,174,.45)" d="M12 2.1l7.2 9.9L12 21.9 4.8 12z"/>
+  </g>
+
+  </g>
+
+  <!-- Le voile qui garde la zone de texte lisible -->
+  <rect x="0" y="0" width="760" height="380" fill="url(#fade)"/>
+</svg>
+</template>
+
+<div class="doc">
+  <header class="doc__head">
+    <div>
+      <p class="doc__eyebrow">Hero · direction 1</p>
+      <h1 class="doc__title">Premium Dealer Table</h1>
+      <p class="doc__lead">Un morceau de table vu légèrement de dessus, cadré à droite&nbsp;: rail cuir surpiqué, feutre éclairé par une seule lampe, deux cartes en éventail, trois piles de jetons de valeurs différentes, et le sabot qui sort du cadre. C’est la direction la plus <em>descriptive</em>&nbsp;: on comprend immédiatement de quel métier parle l’application.</p>
+    </div>
+  </header>
+  <nav class="doc__nav">
+    <a href="index.html">↤ Comparer les 3</a>
+    <a href="1-premium-dealer-table.html" aria-current="page">1 · Premium Dealer Table</a>
+    <a href="2-dealer-desk.html">2 · Dealer Desk</a>
+    <a href="3-abstract-luxury.html">3 · Abstract Casino Luxury</a>
+    <a href="../index.html">Toutes les explorations</a>
+  </nav>
+
+  <p class="section__label">Desktop — dessiné à 1440 px, réduit pour tenir dans la page</p>
+  <div class="mock"><div class="mock__scale" id="desk"></div></div>
+
+  <p class="section__label">Téléphone 390</p>
+  <div id="phone"></div>
+
+  <div class="notes">
+    <div class="note">
+      <h3>Technique</h3>
+      <p>Un seul SVG, ~7&nbsp;ko&nbsp;: dégradés radiaux pour le feutre et la lampe, deux flous gaussiens pour les ombres, un jeton et une carte définis une fois puis réutilisés. Aucune image, aucune police en plus.</p>
+    </div>
+    <div class="note">
+      <h3>Responsive</h3>
+      <p>Cadrage ancré en bas à droite&nbsp;: en se rétrécissant, la bande perd le sabot, puis les jetons, jamais les cartes. Sur téléphone, le même dessin est simplement recadré sur le bord du feutre, à mi-lumière.</p>
+    </div>
+    <div class="note">
+      <h3>Le risque</h3>
+      <p>La plus littérale des trois. Très belle, mais elle raconte «&nbsp;table de jeu&nbsp;» plus que «&nbsp;académie&nbsp;»&nbsp;: à surveiller si l’on veut éviter le registre application de poker.</p>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/stage.js"></script>
+<script>
+(function () {
+  const art = document.getElementById('art').innerHTML;
+  // Le téléphone montre le même dessin, recadré sur le bord droit du feutre
+  const phoneArt = art.replace('viewBox="0 0 1200 380"', 'viewBox="600 0 600 380"');
+
+  function dash(kind) {
+    const phone = kind === 'phone';
+    const side = phone ? '' : `
+      <div class="dash__side">
+        <div class="dash__brand"><span class="dash__mark">DT</span><span class="dash__name">Dealer Training<small>Académie</small></span></div>
+        <div class="dash__nav"><span>Tableau de bord</span><span>Entraînement</span><span>Défis</span><span>Progression</span><span>Réglages</span></div>
+        <p class="dash__motto">« Maîtriser la table, maîtriser le jeu, maîtriser soi. »</p>
+      </div>`;
+    return `<div class="dash dash--${kind}"><div style="display:flex">${side}
+      <div class="dash__main">
+        <section class="band band--table">
+          <div class="band__art">${phone ? phoneArt : art}</div>
+          <p class="band__badge"><span>Formation croupier</span><b>Texas Hold’em</b></p>
+          <div class="band__text">
+            <p class="band__date">Jeudi 17 septembre</p>
+            <h2 class="band__title">Bonsoir, Farid</h2>
+            <p class="band__lead">Prêt pour votre prochaine session ?</p>
+            <span class="band__cta">▶ Continuer l’entraînement</span>
+            <p class="band__resume">Texas Hold’em · 20 exercices</p>
+          </div>
+        </section>
+        <div class="dash__tiles">
+          <div class="dash__tile"><span>XP</span><b>0</b></div>
+          <div class="dash__tile"><span>Série</span><b>—</b></div>
+          <div class="dash__tile"><span>Précision</span><b>—</b></div>
+        </div>
+      </div></div></div>`;
+  }
+
+  document.getElementById('desk').innerHTML = dash('desktop');
+  DX.fit(document.getElementById('desk'), 1440);
+  document.getElementById('phone').innerHTML = dash('phone');
+})();
+</script>
+</body>
+</html>

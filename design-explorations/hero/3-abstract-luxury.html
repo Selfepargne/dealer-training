@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hero 3 — Abstract Casino Luxury · Dealer Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap">
+<link rel="stylesheet" href="../shared/stage.css">
+<link rel="stylesheet" href="hero.css">
+<style>
+/* ==========================================================================
+   HERO 3 — ABSTRACT CASINO LUXURY
+   Pas de scène : une composition de marque. L'arc du rail, une enseigne estampée dans le métal,
+   deux cartes réduites à leur silhouette, trois tranches de jetons, un souffle de feutre.
+   Beaucoup de vide. Un seul éclat très lent traverse l'enseigne.
+   ========================================================================== */
+.band--abstract { min-height: 340px; background: var(--bg-sunken); }
+.band--abstract .band__text { text-shadow: 0 1px 24px rgba(4, 5, 4, 0.7); }
+
+/* L'éclat qui passe sur l'enseigne : le seul mouvement de la composition */
+.sheen { animation: pass 18s linear infinite; }
+@keyframes pass {
+  0%, 72%  { opacity: 0; transform: translateX(-120px); }
+  76%      { opacity: .8; }
+  92%      { opacity: 0; transform: translateX(120px); }
+  100%     { opacity: 0; transform: translateX(120px); }
+}
+@media (prefers-reduced-motion: reduce) { .sheen { animation: none; opacity: 0; } }
+.dash--phone .band--abstract .objects { display: none; }
+</style>
+</head>
+<body>
+
+<template id="art">
+<svg viewBox="0 0 1200 380" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
+  <defs>
+    <!-- Le métal de l'enseigne : deux crêtes claires, deux creux bronze -->
+    <linearGradient id="foil" x1=".1" y1="0" x2=".9" y2="1">
+      <stop offset="0" stop-color="#6b5840"/><stop offset=".22" stop-color="#e7d6b7"/>
+      <stop offset=".45" stop-color="#a68a66"/><stop offset=".66" stop-color="#f1e4ca"/>
+      <stop offset=".86" stop-color="#8a7252"/><stop offset="1" stop-color="#5c4b35"/>
+    </linearGradient>
+    <linearGradient id="glintB" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff8ea" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#fff8ea" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#fff8ea" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="warm3" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#e8cfa6" stop-opacity=".12"/><stop offset="1" stop-color="#e8cfa6" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Un souffle de feutre : aucune table, juste la couleur de la maison -->
+    <radialGradient id="breath" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#1b3325" stop-opacity=".85"/><stop offset="1" stop-color="#1b3325" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ivory3" x1=".1" y1="0" x2=".9" y2="1">
+      <stop offset="0" stop-color="#f4efe3"/><stop offset="1" stop-color="#cfc6b1"/>
+    </linearGradient>
+    <clipPath id="signCut">
+      <path transform="translate(880 96) scale(7.6)"
+        d="M12 2.4C12 2.4 4.9 7.7 4.9 12.2c0 2.5 1.9 4.2 4.1 4.2 1.2 0 2.2-.4 2.8-1.2-.2 2.6-1.2 4.5-2.7 5.5h5.8c-1.5-1-2.5-2.9-2.7-5.5.6.8 1.6 1.2 2.8 1.2 2.2 0 4.1-1.7 4.1-4.2C19.1 7.7 12 2.4 12 2.4z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Le souffle de feutre et la lumière, très larges, très faibles -->
+  <ellipse cx="1000" cy="300" rx="420" ry="300" fill="url(#breath)"/>
+  <ellipse cx="1080" cy="40" rx="420" ry="300" fill="url(#warm3)"/>
+
+  <!-- L'arc du rail : deux traits, rien de plus -->
+  <circle cx="1180" cy="-130" r="430" fill="none" stroke="rgba(194,162,122,.5)" stroke-width="1.2"/>
+  <circle cx="1180" cy="-130" r="470" fill="none" stroke="rgba(194,162,122,.16)" stroke-width="1"/>
+
+  <g class="objects">
+  <!-- L'enseigne : un pique estampé dans le métal, coupé par le bord du cadre -->
+  <g>
+    <path transform="translate(880 96) scale(7.6)" fill="url(#foil)"
+      d="M12 2.4C12 2.4 4.9 7.7 4.9 12.2c0 2.5 1.9 4.2 4.1 4.2 1.2 0 2.2-.4 2.8-1.2-.2 2.6-1.2 4.5-2.7 5.5h5.8c-1.5-1-2.5-2.9-2.7-5.5.6.8 1.6 1.2 2.8 1.2 2.2 0 4.1-1.7 4.1-4.2C19.1 7.7 12 2.4 12 2.4z"/>
+    <path transform="translate(880 96) scale(7.6)" fill="none" stroke="rgba(30,24,16,.55)" stroke-width=".16"
+      d="M12 2.4C12 2.4 4.9 7.7 4.9 12.2c0 2.5 1.9 4.2 4.1 4.2 1.2 0 2.2-.4 2.8-1.2-.2 2.6-1.2 4.5-2.7 5.5h5.8c-1.5-1-2.5-2.9-2.7-5.5.6.8 1.6 1.2 2.8 1.2 2.2 0 4.1-1.7 4.1-4.2C19.1 7.7 12 2.4 12 2.4z"/>
+    <g clip-path="url(#signCut)">
+      <rect class="sheen" x="940" y="80" width="34" height="240" fill="url(#glintB)" transform="rotate(14 957 200)"/>
+    </g>
+  </g>
+
+  <!-- Deux cartes réduites à leur silhouette : une pleine, une au trait -->
+  <g transform="translate(660 210) rotate(-8)">
+    <rect x="-38" y="-54" width="76" height="108" rx="7" fill="url(#ivory3)" opacity=".92"/>
+    <rect x="-31" y="-47" width="62" height="94" rx="4" fill="none" stroke="rgba(120,100,70,.22)" stroke-width="1"/>
+  </g>
+  <g transform="translate(726 224) rotate(7)">
+    <rect x="-38" y="-54" width="76" height="108" rx="7" fill="none" stroke="rgba(226,207,174,.45)" stroke-width="1.2"/>
+    <path transform="translate(-10 -12) scale(1.7)" fill="rgba(226,207,174,.5)" d="M12 2.1l7.2 9.9L12 21.9 4.8 12z"/>
+  </g>
+
+  <!-- Trois tranches de jetons, au trait : l'idée du jeton, pas son dessin -->
+  <g transform="translate(700 322)" fill="none" stroke="rgba(226,207,174,.4)" stroke-width="1.1">
+    <ellipse cx="0" cy="0" rx="42" ry="9"/>
+    <ellipse cx="0" cy="-13" rx="42" ry="9"/>
+    <ellipse cx="0" cy="-26" rx="42" ry="9"/>
+  </g>
+  </g>
+</svg>
+</template>
+
+<div class="doc">
+  <header class="doc__head">
+    <div>
+      <p class="doc__eyebrow">Hero · direction 3</p>
+      <h1 class="doc__title">Abstract Casino Luxury</h1>
+      <p class="doc__lead">Pas de scène, une <em>composition de marque</em>&nbsp;: l’arc du rail en deux traits, une enseigne de pique estampée dans le métal et coupée par le bord du cadre, deux cartes réduites à leur silhouette, trois tranches de jetons au trait, un souffle de feutre. Beaucoup de vide, et un seul éclat très lent sur l’enseigne.</p>
+    </div>
+  </header>
+  <nav class="doc__nav">
+    <a href="index.html">↤ Comparer les 3</a>
+    <a href="1-premium-dealer-table.html">1 · Premium Dealer Table</a>
+    <a href="2-dealer-desk.html">2 · Dealer Desk</a>
+    <a href="3-abstract-luxury.html" aria-current="page">3 · Abstract Casino Luxury</a>
+    <a href="../index.html">Toutes les explorations</a>
+  </nav>
+
+  <p class="section__label">Desktop — dessiné à 1440 px, réduit pour tenir dans la page</p>
+  <div class="mock"><div class="mock__scale" id="desk"></div></div>
+
+  <p class="section__label">Téléphone 390</p>
+  <div id="phone"></div>
+
+  <div class="notes">
+    <div class="note">
+      <h3>Technique</h3>
+      <p>Le plus léger des trois&nbsp;: ~3&nbsp;ko, une quinzaine de formes. L’éclat est un rectangle découpé dans la silhouette du pique (<code>clipPath</code>), animé une fois toutes les dix-huit secondes et coupé net si l’on demande moins d’animation.</p>
+    </div>
+    <div class="note">
+      <h3>Responsive</h3>
+      <p>Ancré à droite, centré verticalement&nbsp;: l’enseigne et l’arc résistent à toutes les largeurs. Sur téléphone, seuls l’arc et le souffle de feutre restent&nbsp;— la marque tient en deux traits.</p>
+    </div>
+    <div class="note">
+      <h3>Ce qu’elle raconte</h3>
+      <p>La plus «&nbsp;grande école&nbsp;»&nbsp;: aucune table, aucune partie, une identité. Risque inverse des deux autres&nbsp;: elle ne dit pas immédiatement «&nbsp;croupier&nbsp;», elle le suggère.</p>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/stage.js"></script>
+<script>
+(function () {
+  const art = document.getElementById('art').innerHTML;
+  const phoneArt = art.replace('viewBox="0 0 1200 380"', 'viewBox="700 0 500 380"');
+
+  function dash(kind) {
+    const phone = kind === 'phone';
+    const side = phone ? '' : `
+      <div class="dash__side">
+        <div class="dash__brand"><span class="dash__mark">DT</span><span class="dash__name">Dealer Training<small>Académie</small></span></div>
+        <div class="dash__nav"><span>Tableau de bord</span><span>Entraînement</span><span>Défis</span><span>Progression</span><span>Réglages</span></div>
+        <p class="dash__motto">« Maîtriser la table, maîtriser le jeu, maîtriser soi. »</p>
+      </div>`;
+    return `<div class="dash dash--${kind}"><div style="display:flex">${side}
+      <div class="dash__main">
+        <section class="band band--abstract">
+          <div class="band__art">${phone ? phoneArt : art}</div>
+          <p class="band__badge"><span>Formation croupier</span><b>Texas Hold’em</b></p>
+          <div class="band__text">
+            <p class="band__date">Jeudi 17 septembre</p>
+            <h2 class="band__title">Bonsoir, Farid</h2>
+            <p class="band__lead">Prêt pour votre prochaine session ?</p>
+            <span class="band__cta">▶ Continuer l’entraînement</span>
+            <p class="band__resume">Texas Hold’em · 20 exercices</p>
+          </div>
+        </section>
+        <div class="dash__tiles">
+          <div class="dash__tile"><span>XP</span><b>0</b></div>
+          <div class="dash__tile"><span>Série</span><b>—</b></div>
+          <div class="dash__tile"><span>Précision</span><b>—</b></div>
+        </div>
+      </div></div></div>`;
+  }
+
+  document.getElementById('desk').innerHTML = dash('desktop');
+  DX.fit(document.getElementById('desk'), 1440);
+  document.getElementById('phone').innerHTML = dash('phone');
+})();
+</script>
+</body>
+</html>

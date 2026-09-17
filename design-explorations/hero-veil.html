@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hero — éclaircir la bande · Dealer Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap">
+<link rel="stylesheet" href="shared/stage.css">
+<style>
+/* ==========================================================================
+   HERO — ÉCLAIRCIR LA BANDE
+   Quatre traitements du même hero, à la largeur réelle du tableau de bord (1440 px).
+   Le sujet : le voile qui éteint le texte imprimé dans la photographie rend la bande trop sombre.
+   Rien ici ne touche à l'application.
+   ========================================================================== */
+
+:root {
+  --gold-hi: #f7e3ac;
+  --gold: #e3c57f;
+  --gold-mid: #d4ad57;
+  --gold-lo: #b8913f;
+  --gold-line: rgba(226, 197, 127, 0.34);
+}
+body { background: #0d0d0e; }
+
+.stage { padding: 0 0 10px; }
+.stage__frame { position: relative; overflow: hidden; }
+.stage__frame > * { transform-origin: top left; }
+
+/* Le cadre du tableau de bord à 1440 : barre latérale 262, marge 48 */
+.page { width: 1440px; display: flex; background: #0d0d0e; }
+.page__side { flex: 0 0 262px; border-right: 1px solid rgba(237, 230, 214, 0.07); }
+.page__main { flex: 1 1 auto; padding: 30px 48px 34px; }
+
+/* ---- La bande ------------------------------------------------------------------------------- */
+
+.band {
+  position: relative;
+  overflow: hidden;
+  min-height: 430px;
+  padding: 48px;
+  border-radius: 16px;
+  background: #060806;
+  box-shadow: 0 40px 80px -50px #000;
+}
+.band__photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.band__veil { position: absolute; inset: 0; }
+
+.band__badge {
+  position: absolute;
+  top: 48px; right: 48px;
+  z-index: 2;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  margin: 0;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+  color: #a29d93;
+}
+.band__badge b { font-weight: 600; color: var(--gold); }
+
+.band__body { position: relative; z-index: 2; max-width: 34ch; }
+.band__date { margin: 0 0 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); }
+.band__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 3.6rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.85);
+}
+.band__title em { font-style: normal; color: var(--gold-hi); }
+.band__lead { margin: 20px 0 30px; font-size: 1.0625rem; color: #d9d3c6; text-shadow: 0 1px 20px rgba(0, 0, 0, 0.8); }
+.band__cta {
+  display: inline-flex; align-items: center; gap: 14px;
+  padding: 0 24px;
+  min-height: 48px;
+  border: 1px solid var(--gold-lo);
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--gold-hi) 0%, var(--gold) 42%, var(--gold-mid) 76%, #c59f4c 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 14px 30px -18px rgba(0, 0, 0, 0.95);
+  color: #1b1408;
+  font-size: 13px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+}
+.band__resume { margin: 16px 0 0; position: relative; z-index: 2; font-size: 13px; color: #a29d93; }
+.band__quote {
+  position: relative;
+  z-index: 2;
+  max-width: 26ch;
+  margin: 32px 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.15rem;
+  line-height: 1.35;
+  color: #cfc7b6;
+}
+.band__quote::after { content: ""; display: block; width: 68px; height: 1px; margin-top: 16px; background: var(--gold-line); }
+
+/* ==========================================================================
+   A — L'ACTUELLE : le voile est opaque jusqu'à 46 % pour éteindre le titre imprimé
+   ========================================================================== */
+.band--a .band__veil {
+  background:
+    linear-gradient(96deg,
+      rgb(5, 7, 5) 0%, rgb(5, 7, 5) 46%, rgba(5, 7, 5, 0.9) 57%,
+      rgba(5, 7, 5, 0.38) 69%, rgba(5, 7, 5, 0) 83%),
+    radial-gradient(40% 60% at 101% -5%, rgb(5, 7, 5) 0%, rgba(5, 7, 5, 0.86) 46%, rgba(5, 7, 5, 0) 80%);
+}
+
+/* ==========================================================================
+   B — VOILE COURT SUR LA MÊME IMAGE : il s'arrête au bouton… et le titre imprimé revient
+   ========================================================================== */
+.band--b .band__veil {
+  background:
+    linear-gradient(96deg,
+      rgba(5, 7, 5, 0.94) 0%, rgba(5, 7, 5, 0.9) 30%, rgba(5, 7, 5, 0.6) 42%,
+      rgba(5, 7, 5, 0.2) 54%, rgba(5, 7, 5, 0) 66%),
+    radial-gradient(40% 60% at 101% -5%, rgb(5, 7, 5) 0%, rgba(5, 7, 5, 0.86) 46%, rgba(5, 7, 5, 0) 80%);
+}
+
+/* ==========================================================================
+   C — NOUVEAU RECADRAGE + VOILE JUSQU'AU BOUTON
+   La photographie est recadrée à la source sur le côté droit de la table : plus aucun texte
+   imprimé, donc le voile n'a plus rien à cacher. Il ne sert qu'à porter le texte.
+   ========================================================================== */
+.band--c .band__veil {
+  background: linear-gradient(96deg,
+    rgba(5, 7, 5, 0.9) 0%, rgba(5, 7, 5, 0.82) 28%, rgba(5, 7, 5, 0.5) 40%,
+    rgba(5, 7, 5, 0.16) 52%, rgba(5, 7, 5, 0) 64%);
+}
+
+/* ==========================================================================
+   D — NOUVEAU RECADRAGE, PRESQUE SANS VOILE
+   Seule une ombre douce sous le texte. C'est la version la plus lumineuse.
+   ========================================================================== */
+.band--d .band__veil {
+  background: linear-gradient(96deg,
+    rgba(5, 7, 5, 0.72) 0%, rgba(5, 7, 5, 0.52) 26%, rgba(5, 7, 5, 0.22) 40%,
+    rgba(5, 7, 5, 0) 54%);
+}
+.band--d .band__title,
+.band--d .band__lead { text-shadow: 0 2px 22px rgba(0, 0, 0, 0.95), 0 1px 4px rgba(0, 0, 0, 0.8); }
+
+/* Dans C et D, la plaque tombe sur le sabot clair : elle emporte son propre fond */
+.band--c .band__badge::before,
+.band--d .band__badge::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -14px -20px -16px -24px;
+  border-radius: 14px;
+  background: radial-gradient(120% 150% at 76% 36%, rgba(5, 7, 5, 0.92) 0%, rgba(5, 7, 5, 0.6) 56%, rgba(5, 7, 5, 0) 100%);
+}
+
+/* La légende de chaque variante */
+.caption { display: flex; align-items: baseline; gap: 16px; margin: 0 0 12px; }
+.caption span {
+  flex: 0 0 auto; width: 30px; height: 30px;
+  display: grid; place-items: center;
+  border: 1px solid var(--gold-line); border-radius: 50%;
+  font-family: var(--font-display); color: var(--gold-hi);
+}
+.caption h2 { margin: 0; font-family: var(--font-display); font-size: 1.35rem; font-weight: 500; color: var(--ivory); }
+.caption p { margin: 0; color: var(--text-2); font-size: var(--fs-small); line-height: 1.55; }
+.caption p b { color: var(--gold); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="doc">
+  <header class="doc__head">
+    <div>
+      <p class="doc__eyebrow">Hero du tableau de bord · éclaircir la bande</p>
+      <h1 class="doc__title">Le voile jusqu’au bouton</h1>
+      <p class="doc__lead">La bande est sombre pour une seule raison&nbsp;: la photographie contient son propre «&nbsp;BONSOIR, FARID&nbsp;», qui court jusqu’au milieu de l’image. Le voile doit donc l’éteindre jusque-là. Voici les quatre issues, à la largeur réelle du tableau de bord.</p>
+    </div>
+  </header>
+  <nav class="doc__nav">
+    <a href="index.html">↤ Toutes les explorations</a>
+    <a href="dashboard.html">Maquette du tableau de bord</a>
+    <a href="hero/index.html">Les trois héros vectoriels</a>
+  </nav>
+
+  <div id="variants"></div>
+</div>
+
+<script src="shared/stage.js"></script>
+<script>
+(function () {
+  const PHOTO_FULL = '../assets/hero-table-1600.webp';
+  const PHOTO_CLOSE = 'assets/hero-close.webp';
+
+  const VARIANTS = [
+    { key: 'a', letter: 'A', photo: PHOTO_FULL, badge: true,
+      title: 'L’actuelle — voile jusqu’au milieu',
+      text: 'Le voile est <b>opaque jusqu’à 46&nbsp;%</b> de la bande, parce que le titre imprimé dans la photographie s’arrête là. C’est ce qui rend le hero sombre&nbsp;: la moitié gauche de la table est effacée.' },
+    { key: 'b', letter: 'B', photo: PHOTO_FULL, badge: true,
+      title: 'Voile jusqu’au bouton, même image',
+      text: 'Le voile s’arrête au bouton, comme demandé. Regardez derrière le titre&nbsp;: <b>le «&nbsp;FARID&nbsp;» imprimé dans la photographie réapparaît</b>, ainsi que son bouton doré. Sur cette image, un voile court n’est pas tenable.' },
+    { key: 'c', letter: 'C', photo: PHOTO_CLOSE, badge: true,
+      title: 'Recadrage à la source + voile jusqu’au bouton',
+      text: 'La photographie est recadrée sur <b>le côté droit de la table</b>, à sa résolution d’origine&nbsp;: jetons au monogramme, A♠&nbsp;K♥, bouton DEALER, sabot. Plus aucun texte imprimé, donc le voile ne sert plus qu’à porter le texte. 70&nbsp;Ko.' },
+    { key: 'd', letter: 'D', photo: PHOTO_CLOSE, badge: true,
+      title: 'Recadrage à la source, presque sans voile',
+      text: 'Le même recadrage avec <b>un simple dégradé sous le texte</b>. La version la plus lumineuse. Le titre tient grâce à son ombre portée&nbsp;; à vérifier si un jour un prénom très long descend sur le feutre clair.' },
+  ];
+
+  const band = (v) => `
+    <section class="band band--${v.key}">
+      <img class="band__photo" src="${v.photo}" alt="">
+      <span class="band__veil"></span>
+      ${v.badge ? '<p class="band__badge"><span>Formation croupier</span><b>Texas Hold’em</b></p>' : ''}
+      <div class="band__body">
+        <p class="band__date">Jeudi 17 septembre</p>
+        <h2 class="band__title">Bonsoir, <em>Farid</em></h2>
+        <p class="band__lead">Prêt pour votre prochaine session ?</p>
+        <span class="band__cta">▶ Continuer l’entraînement →</span>
+        <p class="band__resume">Texas Hold’em · 20 exercices</p>
+      </div>
+      <p class="band__quote">« Maîtriser la table, maîtriser le jeu, maîtriser soi. »</p>
+    </section>`;
+
+  document.getElementById('variants').innerHTML = VARIANTS.map((v) => `
+    <p class="section__label">Variante ${v.letter}</p>
+    <div class="caption">
+      <span>${v.letter}</span>
+      <div><h2>${v.title}</h2><p>${v.text}</p></div>
+    </div>
+    <div class="stage"><div class="stage__frame" data-fit>
+      <div class="page"><div class="page__side"></div><div class="page__main">${band(v)}</div></div>
+    </div></div>`).join('');
+
+  document.querySelectorAll('[data-fit]').forEach((host) => DX.fit(host, 1440));
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hero retenu — dégradé 42 % · Dealer Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap">
+<link rel="stylesheet" href="shared/stage.css">
+<style>
+/* ==========================================================================
+   HERO RETENU — la photographie au monogramme FC, dégradé 42 %
+   Le choix arrêté, montré dans son contexte : desktop 1440, tablette 1024, téléphone 390.
+   C'est la maquette de contrôle avant de toucher à l'application.
+   ========================================================================== */
+
+:root {
+  --gold-hi: #f7e3ac;
+  --gold: #e3c57f;
+  --gold-mid: #d4ad57;
+  --gold-lo: #b8913f;
+  --gold-line: rgba(226, 197, 127, 0.34);
+  --panel: rgba(24, 25, 24, 0.82);
+}
+body { background: #0d0d0e; }
+
+.stage__frame { position: relative; overflow: hidden; }
+.stage__frame > * { transform-origin: top left; }
+
+/* Le cadre du tableau de bord : barre latérale 262 au-dessus de 1180, rail au-dessous */
+.page { display: flex; background: #0d0d0e; }
+.page--desktop { width: 1440px; }
+.page--tablet { width: 1024px; }
+.page--phone { width: 390px; }
+.page__side { flex: 0 0 262px; border-right: 1px solid rgba(237, 230, 214, 0.07); }
+.page--tablet .page__side { flex-basis: 76px; }
+.page--phone .page__side { display: none; }
+.page__main { flex: 1 1 auto; min-width: 0; padding: 30px 48px 34px; }
+.page--tablet .page__main { padding: 26px 32px 30px; }
+.page--phone .page__main { padding: 20px 16px 24px; }
+
+/* ---- La bande ------------------------------------------------------------------------------- */
+
+.band {
+  position: relative;
+  overflow: hidden;
+  min-height: 430px;
+  padding: 48px;
+  border-radius: 16px;
+  background: #060806;
+  box-shadow: 0 40px 80px -50px #000;
+}
+.page--tablet .band { min-height: 380px; padding: 32px; }
+.page--phone .band { min-height: 320px; padding: 24px 22px 26px; }
+
+.band__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 100% 50%;   /* la gravure du coin n'est jamais rognée */
+}
+.band__veil { position: absolute; inset: 0; }
+
+/* Le dégradé retenu : noir à l'extrême gauche, éteint à 42 %, par paliers doux */
+.band__veil {
+  background: linear-gradient(90deg,
+    rgb(5, 7, 5) 0%,
+    rgba(5, 7, 5, 0.98) 7%,
+    rgba(5, 7, 5, 0.93) 14%,
+    rgba(5, 7, 5, 0.84) 21%,
+    rgba(5, 7, 5, 0.7) 27%,
+    rgba(5, 7, 5, 0.5) 32%,
+    rgba(5, 7, 5, 0.3) 36%,
+    rgba(5, 7, 5, 0.13) 39%,
+    rgba(5, 7, 5, 0) 42%);
+}
+/* Sur téléphone la bande est presque carrée : le dégradé descend au lieu d'aller vers la droite */
+.page--phone .band__veil {
+  background: linear-gradient(176deg,
+    rgba(4, 6, 4, 0.96) 0%,
+    rgba(4, 6, 4, 0.9) 34%,
+    rgba(4, 6, 4, 0.66) 58%,
+    rgba(4, 6, 4, 0.3) 78%,
+    rgba(4, 6, 4, 0.12) 100%);
+}
+.page--phone .band__photo { object-position: 40% 50%; }  /* la gravure du coin sort du cadre */
+
+.band__body { position: relative; z-index: 2; max-width: 34ch; }
+.band__date { margin: 0 0 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); }
+.band__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 3.6rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 2px 26px rgba(0, 0, 0, 0.8);
+}
+.page--tablet .band__title { font-size: 2.8rem; }
+.page--phone .band__title { font-size: 2.1rem; }
+.band__title em { font-style: normal; color: var(--gold-hi); }
+.band__lead { margin: 20px 0 30px; font-size: 1.0625rem; color: #d9d3c6; }
+.page--phone .band__lead { margin: 14px 0 24px; font-size: 1rem; }
+.band__cta {
+  display: inline-flex; align-items: center; gap: 14px;
+  padding: 0 24px;
+  min-height: 48px;
+  border: 1px solid var(--gold-lo);
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--gold-hi) 0%, var(--gold) 42%, var(--gold-mid) 76%, #c59f4c 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 14px 30px -18px rgba(0, 0, 0, 0.95);
+  color: #1b1408;
+  font-size: 13px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+  white-space: nowrap;
+}
+.page--phone .band__cta { padding: 0 18px; gap: 10px; font-size: 12px; letter-spacing: 0.12em; }
+.band__resume { position: relative; z-index: 2; margin: 16px 0 0; font-size: 13px; color: #a29d93; }
+.page--phone .band__resume { text-shadow: 0 1px 12px rgba(0, 0, 0, 0.95); }
+.band__quote {
+  position: relative;
+  z-index: 2;
+  max-width: 26ch;
+  margin: 32px 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.15rem;
+  line-height: 1.35;
+  color: #cfc7b6;
+}
+.band__quote::after { content: ""; display: block; width: 68px; height: 1px; margin-top: 16px; background: var(--gold-line); }
+.page--phone .band__quote { display: none; }
+
+/* ---- Les chiffres clés, pour juger la bande dans la page ------------------------------------ */
+
+.kpis { display: grid; gap: 24px; grid-template-columns: 2.1fr 1fr 1fr 1fr; margin-top: 24px; }
+.page--tablet .kpis { grid-template-columns: 1fr 1fr; gap: 18px; }
+.page--phone .kpis { grid-template-columns: 1fr; gap: 16px; }
+.tile {
+  position: relative;
+  overflow: hidden;
+  padding: 24px 26px 26px;
+  border: 1px solid rgba(226, 197, 127, 0.16);
+  border-radius: 12px;
+  background:
+    radial-gradient(120% 140% at 90% -25%, rgba(226, 197, 127, 0.08), transparent 62%),
+    var(--panel);
+}
+.tile::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(247, 227, 172, 0.6) 28%, rgba(247, 227, 172, 0.6) 72%, transparent);
+}
+.tile__label { font-size: 11.5px; font-weight: 600; letter-spacing: 0.085em; text-transform: uppercase; color: #cdc6b8; }
+.tile__figure { margin-top: 18px; display: flex; align-items: baseline; gap: 8px; }
+.tile__figure b {
+  font-family: var(--font-display);
+  font-size: 3.5rem; font-weight: 600; line-height: 0.92;
+  background: linear-gradient(180deg, #fffaf0 0%, var(--gold-hi) 42%, var(--gold-mid) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.tile__figure small { font-size: 16px; font-weight: 600; color: var(--gold); }
+.tile__note { margin: 12px 0 0; font-size: 13px; color: #6f6a62; }
+.tile__icon {
+  position: absolute; top: 22px; right: 24px;
+  width: 48px; height: 48px;
+  display: grid; place-items: center;
+  border: 1px solid rgba(226, 197, 127, 0.5);
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, rgba(247, 227, 172, 0.22), rgba(226, 197, 127, 0.04) 72%);
+  box-shadow: 0 8px 22px -12px rgba(226, 197, 127, 0.65);
+  color: var(--gold-hi);
+  font-size: 18px;
+}
+
+.note { margin: 0; }
+.notes { margin-top: 34px; }
+</style>
+</head>
+<body>
+<div class="doc">
+  <header class="doc__head">
+    <div>
+      <p class="doc__eyebrow">Hero du tableau de bord · le choix arrêté</p>
+      <h1 class="doc__title">Variante 2 — dégradé 42 %</h1>
+      <p class="doc__lead">La nouvelle photographie, monogramme FC sur les jetons et sur le sabot, avec le dégradé qui s’éteint à 42&nbsp;%&nbsp;: noir franc à l’extrême gauche, table intacte dès le premier tiers. Voici la bande dans son contexte, aux trois largeurs, avant que je ne touche à l’application.</p>
+    </div>
+  </header>
+  <nav class="doc__nav">
+    <a href="index.html">↤ Toutes les explorations</a>
+    <a href="hero-gradient.html">Les trois dégradés</a>
+    <a href="hero-veil.html">L’étape précédente</a>
+  </nav>
+
+  <div id="mocks"></div>
+
+  <div class="notes">
+    <div class="note note--accent" style="padding:22px 24px;border:1px solid var(--gold-line);border-radius:12px;background:linear-gradient(160deg, rgba(226,197,127,.08), transparent 70%)">
+      <h3 style="margin:0 0 10px;font-family:var(--font-display);font-size:1.3rem;font-weight:500;color:var(--ivory)">Ce que j’installerai si vous validez</h3>
+      <ul style="margin:0;padding-left:20px;color:var(--text-2);font-size:var(--fs-small);line-height:1.75">
+        <li>Les deux fichiers remplacent ceux d’aujourd’hui dans <code>assets/</code>&nbsp;: <b>91&nbsp;Ko</b> en 1600&nbsp;px, <b>54&nbsp;Ko</b> en 1100&nbsp;px.</li>
+        <li>Le voile devient ce dégradé à 42&nbsp;%, et l’image est ancrée à droite pour que la gravure du coin ne soit jamais rognée.</li>
+        <li>Je retire le cache du coin haut droit et la plaque HTML du module&nbsp;: la photographie porte sa gravure, et le module reste nommé sous le bouton.</li>
+        <li>Sur téléphone, le dégradé descend du haut au lieu d’aller vers la droite&nbsp;— la table reste visible derrière le texte au lieu d’être éteinte.</li>
+        <li>La date, le prénom, le module et la devise restent du vrai texte&nbsp;: rien n’est figé dans l’image.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script src="shared/stage.js"></script>
+<script>
+(function () {
+  const PHOTO = 'assets/hero-v3-1600.webp';
+  const PHOTO_SMALL = 'assets/hero-v3-1100.webp';
+
+  const band = (kind) => `
+    <section class="band">
+      <img class="band__photo" src="${kind === 'phone' ? PHOTO_SMALL : PHOTO}" alt="">
+      <span class="band__veil"></span>
+      <div class="band__body">
+        <p class="band__date">Jeudi 17 septembre</p>
+        <h2 class="band__title">Bonsoir, <em>Farid</em></h2>
+        <p class="band__lead">Prêt pour votre prochaine session ?</p>
+        <span class="band__cta">▶ Continuer l’entraînement →</span>
+        <p class="band__resume">Texas Hold’em · 20 exercices</p>
+      </div>
+      <p class="band__quote">« Maîtriser la table, maîtriser le jeu, maîtriser soi. »</p>
+    </section>`;
+
+  const kpis = () => `
+    <div class="kpis">
+      <div class="tile">
+        <p class="tile__label">Grade actuel</p>
+        <div class="tile__figure"><b>5</b><small>Croupier à l’essai · 74 %</small></div>
+        <p class="tile__note">Prochain grade : Croupier junior · 420 / 1600 XP</p>
+      </div>
+      <div class="tile"><span class="tile__icon">♦</span><p class="tile__label">Série</p><div class="tile__figure"><b>12</b><small>jours</small></div><p class="tile__note">Record 22</p></div>
+      <div class="tile"><span class="tile__icon">♠</span><p class="tile__label">Précision</p><div class="tile__figure"><b>82</b><small>%</small></div><p class="tile__note">Sur les 50 dernières réponses</p></div>
+      <div class="tile"><span class="tile__icon">♣</span><p class="tile__label">Vitesse moyenne</p><div class="tile__figure"><b>2,6</b><small>s</small></div><p class="tile__note">34 % sous le temps cible</p></div>
+    </div>`;
+
+  const page = (kind) => `
+    <div class="page page--${kind}">
+      <div class="page__side"></div>
+      <div class="page__main">${band(kind)}${kpis()}</div>
+    </div>`;
+
+  const MOCKS = [
+    { kind: 'desktop', w: 1440, label: 'Desktop 1440 — dessiné à la largeur réelle, réduit pour tenir dans la page' },
+    { kind: 'tablet', w: 1024, label: 'Tablette 1024' },
+    { kind: 'phone', w: 390, label: 'Téléphone 390 — le dégradé descend du haut' },
+  ];
+
+  document.getElementById('mocks').innerHTML = MOCKS.map((m) => `
+    <p class="section__label">${m.label}</p>
+    <div class="stage"><div class="stage__frame" data-fit data-w="${m.w}">${page(m.kind)}</div></div>`).join('');
+
+  document.querySelectorAll('[data-fit]').forEach((host) => DX.fit(host, Number(host.dataset.w)));
+})();
+</script>
+</body>
+</html>

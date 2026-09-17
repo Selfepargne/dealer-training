@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Explorations de direction artistique · Dealer Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap">
+<link rel="stylesheet" href="shared/stage.css">
+<style>
+/* Le sommaire des explorations : rien de l'application n'est modifié par ce dossier. */
+.lanes { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+@media (max-width: 1000px) { .lanes { grid-template-columns: 1fr; } }
+
+.lane { padding: 26px 28px 28px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
+.lane h2 { margin: 0 0 6px; font-family: var(--font-display); font-size: 1.6rem; font-weight: 500; color: var(--ivory); }
+.lane > p { margin: 0 0 18px; color: var(--text-2); font-size: var(--fs-small); line-height: 1.6; }
+.lane ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.lane li a {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 13px 16px;
+  border: 1px solid var(--line-2); border-radius: var(--radius);
+  color: var(--text); text-decoration: none;
+}
+.lane li a:hover { border-color: var(--accent-line); background: var(--accent-wash); }
+.lane li b { flex: 0 0 auto; font-family: var(--font-display); font-size: 1.05rem; color: var(--accent-hi); }
+.lane li span { color: var(--text-2); font-size: var(--fs-small); }
+.lane__all { display: inline-block; margin-top: 16px; color: var(--accent); font-size: var(--fs-small); text-decoration: none; border-bottom: 1px solid var(--accent-line); }
+
+table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+th, td { padding: 13px 16px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); font-size: var(--fs-small); }
+th { font-size: var(--fs-micro); font-weight: 600; letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-3); }
+td:first-child { color: var(--ivory); white-space: nowrap; }
+td { color: var(--text-2); line-height: 1.55; }
+tr:last-child td { border-bottom: 0; }
+.verdict { color: var(--accent-hi); }
+
+.choose { margin-top: 30px; padding: 24px 28px; border: 1px solid var(--accent-line); border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, var(--accent-wash), transparent 70%); }
+.choose h2 { margin: 0 0 8px; font-family: var(--font-display); font-size: 1.5rem; font-weight: 500; color: var(--ivory); }
+.choose p { margin: 0 0 6px; color: var(--text-2); line-height: 1.6; }
+.choose code { padding: 2px 8px; border: 1px solid var(--line-2); border-radius: 6px; color: var(--accent-hi); font-size: .85em; }
+</style>
+</head>
+<body>
+<div class="doc">
+  <header class="doc__head">
+    <div>
+      <p class="doc__eyebrow">Dealer Training · académie professionnelle de croupiers</p>
+      <h1 class="doc__title">Explorations de direction artistique</h1>
+      <p class="doc__lead">Sept simulations indépendantes, à regarder puis à choisir. Ce dossier est isolé&nbsp;: il recopie les couleurs et la typographie de l’application pour être fidèle, mais il ne charge ni ne modifie aucun fichier du produit. Rien n’est encore implémenté.</p>
+    </div>
+  </header>
+
+  <p class="section__label">Les deux chantiers</p>
+  <div class="lanes">
+    <div class="lane">
+      <h2>Pluie dorée</h2>
+      <p>La matière des symboles ♠&nbsp;♥&nbsp;♦&nbsp;♣ derrière les écrans de navigation. Quatre directions réellement différentes, avec pour chacune un réglage d’intensité (sobre · juste · démonstration) et un bouton pause pour juger une image fixe.</p>
+      <ol>
+        <li><a href="golden-suits/a-gold-dust.html"><b>A</b><span>Gold Dust — contours d’un cheveu et poussière d’or</span></a></li>
+        <li><a href="golden-suits/b-floating-suits.html"><b>B</b><span>Floating Suits — des objets avec épaisseur, reflet et ombre</span></a></li>
+        <li><a href="golden-suits/c-luxury-bokeh.html"><b>C</b><span>Luxury Bokeh — taches de lumière et trois signes nets</span></a></li>
+        <li><a href="golden-suits/d-premium-casino.html"><b>D</b><span>Premium Casino — estampé, gravé, aligné sur un rail</span></a></li>
+      </ol>
+      <a class="lane__all" href="golden-suits/index.html">Comparer les quatre sur une page →</a>
+    </div>
+
+    <div class="lane">
+      <h2>Hero du tableau de bord</h2>
+      <p>La bande d’accueil, aujourd’hui construite en CSS et trop pauvre. Trois compositions vectorielles, montrées dans le tableau de bord à la bonne largeur, avec le vrai titre et le vrai bouton, plus le rendu téléphone.</p>
+      <ol>
+        <li><a href="hero/1-premium-dealer-table.html"><b>1</b><span>Premium Dealer Table — un morceau de table, rail, cartes, jetons</span></a></li>
+        <li><a href="hero/2-dealer-desk.html"><b>2</b><span>Dealer Desk — le poste&nbsp;: rack, bouton DEALER, cartes au dos champagne</span></a></li>
+        <li><a href="hero/3-abstract-luxury.html"><b>3</b><span>Abstract Casino Luxury — une identité, presque rien</span></a></li>
+      </ol>
+      <a class="lane__all" href="hero/index.html">Comparer les trois sur une page →</a>
+    </div>
+  </div>
+
+  <p class="section__label">Quelle technologie pour quel élément</p>
+  <table>
+    <thead>
+      <tr><th>Approche</th><th>Qualité</th><th>Poids &amp; performance</th><th>Responsive</th><th>Maintenance &amp; cohérence</th><th>Verdict</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>CSS pur<br><span style="color:var(--text-3)">(l’actuel)</span></td>
+        <td>Correcte pour un dégradé ou un halo. Incapable de rendre une carte ou un jeton crédible&nbsp;: c’est exactement le problème constaté.</td>
+        <td>Le plus léger. Attention aux grands flous, coûteux à composer.</td>
+        <td>Parfait&nbsp;: tout est en pourcentages et en variables.</td>
+        <td>Le dessin se retrouve éparpillé dans la feuille de style&nbsp;: dix règles pour un jeton.</td>
+        <td class="verdict">À garder pour les lumières, les voiles et les mouvements.</td>
+      </tr>
+      <tr>
+        <td>SVG en ligne</td>
+        <td>Excellente&nbsp;: dégradés, découpes, ombres floutées, traits d’un demi-pixel. Net sur tous les écrans, y compris en très haute densité.</td>
+        <td>3 à 7&nbsp;ko par illustration, dans le HTML&nbsp;: aucune requête, rien à attendre. Animation limitée à l’opacité et aux transformations.</td>
+        <td>Excellent&nbsp;: <code>viewBox</code> et <code>preserveAspectRatio</code> permettent de recadrer au lieu de rapetisser, et de masquer un groupe sur téléphone.</td>
+        <td>Le dessin est un objet unique, versionné avec le code, qui hérite des couleurs de la palette par variables.</td>
+        <td class="verdict">Le bon choix pour les symboles <em>et</em> pour le hero.</td>
+      </tr>
+      <tr>
+        <td>Image raster<br><span style="color:var(--text-3)">(PNG / WebP)</span></td>
+        <td>Peut aller plus loin en réalisme photographique (grain, matière, flou optique) qu’aucun vecteur.</td>
+        <td>80 à 400&nbsp;ko, plusieurs tailles à fournir, une requête de plus, et un temps d’affichage visible.</td>
+        <td>Faible&nbsp;: il faut au moins trois variantes de cadrage, et un recadrage reste approximatif.</td>
+        <td>Le point faible&nbsp;: la palette de l’image est figée. Changer le champagne de la marque obligerait à refaire l’image.</td>
+        <td class="verdict">À réserver à une vraie photographie de studio, plus tard.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="choose">
+    <h2>Comment choisir</h2>
+    <p>Une lettre pour la pluie, un chiffre pour le hero. Par exemple&nbsp;: <code>D</code>, ou <code>Hero 2 + pluie B</code>, ou encore <code>Hero 3, pluie C, mais plus sobre</code>.</p>
+    <p>Rien ne sera touché dans l’application avant votre réponse&nbsp;: aucune modification du tableau de bord, de <code>GoldenSuits.js</code>, du CSS de production, des exercices, des moteurs ou de Blackjack, et aucun commit.</p>
+  </div>
+</div>
+</body>
+</html>

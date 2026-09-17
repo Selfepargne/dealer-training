@@ -1,0 +1,111 @@
+/* ==========================================================================
+   Design explorations — the frame shared by the three hero proposals.
+   The band is shown inside a ghost of the real dashboard, at 1440 and at 390,
+   so a composition is judged where it will live and not on a blank page.
+   ========================================================================== */
+
+.dash {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+}
+.dash--phone { width: 390px; border-radius: 28px; }
+.dash__row { display: flex; align-items: flex-start; gap: 32px; }
+@media (max-width: 1180px) { .dash__row { flex-direction: column; align-items: center; } }
+
+.dash__side {
+  flex: 0 0 236px;
+  align-self: stretch;
+  padding: 22px 20px;
+  border-right: 1px solid var(--line);
+}
+.dash__main { flex: 1 1 auto; min-width: 0; padding: 26px; }
+.dash--phone .dash__main { padding: 18px; }
+
+/* ---- The band itself ------------------------------------------------------------------------ */
+
+.band {
+  position: relative;
+  overflow: hidden;
+  min-height: 320px;
+  padding: 40px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-sunken);
+}
+.dash--phone .band { min-height: 0; padding: 24px 22px 26px; }
+
+/* The illustration sits behind the words and never takes a click */
+.band__art { position: absolute; inset: 0; pointer-events: none; }
+.band__art svg { display: block; width: 100%; height: 100%; }
+.band__text { position: relative; z-index: 2; max-width: 30ch; }
+
+.band__badge {
+  position: absolute;
+  top: 26px;
+  right: 30px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--accent-line);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.band__badge b { font-weight: 600; color: var(--accent-hi); }
+.dash--phone .band__badge { position: static; align-items: flex-start; margin-bottom: 18px; border-bottom: 0; padding: 0; }
+
+.band__date { margin: 0 0 10px; font-size: var(--fs-micro); font-weight: 600; letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--accent); }
+.band__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 3.2vw, 3.2rem);
+  font-weight: 500;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--ivory);
+}
+.dash--phone .band__title { font-size: 2.1rem; }
+.band__lead { margin: 16px 0 26px; color: var(--text-2); }
+.band__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 26px;
+  border: 1px solid rgba(120, 100, 70, 0.28);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #f6efdf 0%, var(--ivory) 55%, #ddd3bd 100%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.35) inset, 0 6px 16px -12px rgba(0, 0, 0, 0.9);
+  color: #141414;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+.band__resume { margin: 14px 0 0; font-size: var(--fs-small); color: var(--text-3); }
+
+/* ---- What comes under the band, to check the band does not eat the page --------------------- */
+
+.dash__tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 22px; }
+.dash--phone .dash__tiles { grid-template-columns: 1fr 1fr; }
+.dash--phone .dash__tiles > :last-child { display: none; }
+.dash__tile { padding: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.dash__tile span { font-size: var(--fs-micro); letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-3); }
+.dash__tile b { display: block; margin-top: 6px; font-family: var(--font-display); font-size: 1.9rem; font-weight: 500; color: var(--ivory); }
+
+.dash__brand { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+.dash__mark { width: 34px; height: 34px; border: 1px solid var(--accent-line); border-radius: 9px;
+  background: linear-gradient(160deg, #1b2a22, #0f1713); color: var(--accent);
+  font-family: var(--font-display); font-size: 15px; display: grid; place-items: center; }
+.dash__name { font-family: var(--font-display); font-size: 1.1rem; color: var(--ivory); line-height: 1.1; }
+.dash__name small { display: block; font-family: var(--font-ui); font-size: 9px; letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-3); }
+.dash__nav { display: grid; gap: 4px; }
+.dash__nav span { padding: 10px 12px; border-radius: 8px; color: var(--text-2); font-size: var(--fs-small); }
+.dash__nav span:first-child { background: var(--surface); color: var(--ivory); }
+.dash__motto { margin: 34px 0 0; padding-top: 18px; border-top: 1px solid var(--line);
+  font-family: var(--font-display); font-style: italic; font-size: 1.0625rem; line-height: 1.35; color: var(--text-3); }

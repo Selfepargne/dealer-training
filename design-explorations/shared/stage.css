@@ -1,0 +1,252 @@
+/* ==========================================================================
+   Design explorations — the frame around each simulation.
+   Nothing here is used by the application: the tokens below are a COPY of css/main.css
+   so that a simulation shows exactly the colours and the type of Dealer Training
+   without the explorations ever loading (or changing) a production stylesheet.
+   ========================================================================== */
+
+:root {
+  /* Surfaces — deep anthracite, warm undertone */
+  --bg: #0d0d0e;
+  --bg-sunken: #0a0a0b;
+  --surface: #151516;
+  --surface-2: #1b1b1c;
+  --surface-3: #232324;
+
+  --line: rgba(237, 230, 214, 0.07);
+  --line-2: rgba(237, 230, 214, 0.12);
+  --line-3: rgba(237, 230, 214, 0.2);
+
+  /* Text — warm ivory to warm grey */
+  --ivory: #ede6d6;
+  --text: #e4ddcd;
+  --text-2: #a29d93;
+  --text-3: #6d6a64;
+
+  /* Accent — champagne bronze */
+  --accent: #c2a27a;
+  --accent-hi: #d6bc97;
+  --accent-lo: #8f7656;
+  --accent-wash: rgba(194, 162, 122, 0.1);
+  --accent-line: rgba(194, 162, 122, 0.32);
+
+  --felt: #13201b;
+
+  --font-display: "Cormorant Garamond", "Cormorant", Georgia, "Times New Roman", serif;
+  --font-ui: "DM Sans", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --fs-micro: 0.6875rem;
+  --fs-small: 0.8125rem;
+  --fs-body: 0.9375rem;
+  --fs-lead: 1.0625rem;
+
+  --tracking-caps: 0.16em;
+  --radius: 10px;
+  --radius-lg: 16px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0 0 80px;
+  background: var(--bg-sunken);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- The page header of a simulation ------------------------------------------------------- */
+
+.doc {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+.doc__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 24px 32px;
+  padding: 36px 0 24px;
+  border-bottom: 1px solid var(--line);
+}
+.doc__eyebrow {
+  margin: 0 0 6px;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.doc__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 500;
+  line-height: 1.05;
+  color: var(--ivory);
+}
+.doc__lead { margin: 10px 0 0; max-width: 62ch; color: var(--text-2); line-height: 1.55; }
+.doc__tools { display: flex; gap: 10px; margin-left: auto; }
+
+.tool {
+  padding: 9px 16px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+.tool:hover { border-color: var(--accent-line); color: var(--ivory); }
+.tool[aria-pressed="true"] { border-color: var(--accent-line); background: var(--accent-wash); color: var(--accent-hi); }
+
+.doc__nav { display: flex; flex-wrap: wrap; gap: 8px; padding: 18px 0 0; }
+.doc__nav a {
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  text-decoration: none;
+}
+.doc__nav a:hover { border-color: var(--accent-line); color: var(--ivory); }
+.doc__nav a[aria-current="page"] { border-color: var(--accent-line); background: var(--accent-wash); color: var(--accent-hi); }
+
+.section__label {
+  margin: 44px 0 14px;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* ---- The two stages: a desktop screen and a phone ------------------------------------------- */
+
+.screens { display: flex; align-items: flex-start; gap: 32px; }
+.screen {
+  position: relative;
+  overflow: hidden;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 540px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+}
+.screen--phone { flex: 0 0 390px; width: 390px; height: 700px; border-radius: 28px; }
+@media (max-width: 1180px) {
+  .screens { flex-direction: column; }
+  .screen--phone { align-self: center; }
+}
+
+/* The decoration layer of a simulation lives here.
+   --gain is the intensity switch of the page header: sober is what the application would ship,
+   demo raises everything so the material itself can be judged from a screenshot. */
+.layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; container-type: size; --gain: 1; }
+body[data-gain="sober"] .layer { --gain: 0.62; }
+body[data-gain="demo"] .layer { --gain: 2.1; }
+
+/* ---- A ghost of the real interface, so the decoration is judged in place -------------------- */
+
+.ui { position: relative; z-index: 2; display: flex; height: 100%; }
+.ui__side {
+  flex: 0 0 236px;
+  padding: 22px 20px;
+  border-right: 1px solid var(--line);
+  background: var(--bg);
+}
+.ui__brand { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+.ui__mark {
+  width: 34px; height: 34px;
+  border: 1px solid var(--accent-line);
+  border-radius: 9px;
+  background: linear-gradient(160deg, #1b2a22, #0f1713);
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 15px;
+  display: grid; place-items: center;
+}
+.ui__name { font-family: var(--font-display); font-size: 1.1rem; color: var(--ivory); line-height: 1.1; }
+.ui__name small { display: block; font-family: var(--font-ui); font-size: 9px; letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-3); }
+.ui__nav { display: grid; gap: 4px; }
+.ui__nav span {
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+}
+.ui__nav span:first-child { background: var(--surface); color: var(--ivory); }
+.ui__body { flex: 1 1 auto; min-width: 0; padding: 30px 34px; }
+.ui__date { margin: 0 0 8px; font-size: var(--fs-micro); font-weight: 600; letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--accent); }
+.ui__h1 { margin: 0; font-family: var(--font-display); font-size: clamp(2rem, 3.4vw, 3.1rem); font-weight: 500; line-height: 1; color: var(--ivory); text-transform: uppercase; letter-spacing: 0.01em; }
+.ui__sub { margin: 14px 0 26px; color: var(--text-2); }
+.ui__cta {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 15px 26px;
+  border: 1px solid rgba(120, 100, 70, 0.28);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #f6efdf 0%, var(--ivory) 55%, #ddd3bd 100%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.35) inset, 0 6px 16px -12px rgba(0, 0, 0, 0.9);
+  color: #141414;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+.ui__tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 36px; }
+.ui__tile {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.ui__tile b { display: block; font-family: var(--font-display); font-size: 1.9rem; font-weight: 500; color: var(--ivory); }
+.ui__tile span { font-size: var(--fs-micro); letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-3); }
+
+/* The phone ghost */
+.screen--phone .ui { flex-direction: column; }
+.screen--phone .ui__side { display: none; }
+.screen--phone .ui__body { padding: 26px 22px; }
+.screen--phone .ui__h1 { font-size: 2.1rem; }
+.screen--phone .ui__tiles { grid-template-columns: 1fr 1fr; }
+.screen--phone .ui__tile:last-child { display: none; }
+
+/* ---- Notes under a simulation --------------------------------------------------------------- */
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin: 30px 0 0; }
+.note {
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.note h3 { margin: 0 0 8px; font-family: var(--font-display); font-size: 1.15rem; font-weight: 500; color: var(--ivory); }
+.note p { margin: 0; color: var(--text-2); font-size: var(--fs-small); line-height: 1.6; }
+.note ul { margin: 0; padding-left: 18px; color: var(--text-2); font-size: var(--fs-small); line-height: 1.7; }
+.note--accent { border-color: var(--accent-line); background: linear-gradient(160deg, var(--accent-wash), transparent 70%); }
+
+/* Nothing moves when the reader asked for less motion, and the Pause button does the same */
+@media (prefers-reduced-motion: reduce) {
+  .layer * { animation-play-state: paused !important; }
+}
+body[data-paused="true"] .layer * { animation-play-state: paused !important; }
+
+/* ---- A mock shown at its real width, scaled down to fit the page ---------------------------- */
+
+.mock { margin: 0 0 8px; }
+.mock__scale { position: relative; overflow: hidden; }
+.mock__scale > * { transform-origin: top left; }
+
+/* ---- ?bare=1 : the page reduced to its mock, for the comparison pages ----------------------- */
+
+.bare body { padding: 0; background: var(--bg); }
+.bare .doc { padding: 0; max-width: none; }
+.bare .doc__head, .bare .doc__nav, .bare .notes, .bare .section__label, .bare #phone { display: none; }
+.bare .screens { gap: 0; }
+.bare .screen { border: 0; border-radius: 0; height: 560px; }
+.bare .screen--phone { display: none; }

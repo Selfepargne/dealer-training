@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B — Floating Suits · Dealer Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap">
+<link rel="stylesheet" href="../shared/stage.css">
+<style>
+/* ==========================================================================
+   VARIANTE B — FLOATING SUITS
+   Des objets, pas des caractères : chaque symbole a une épaisseur (une seconde passe
+   bronze sous la première), un dégradé champagne, un reflet en haut et une ombre portée.
+   Trois plans de profondeur qui ne vont pas à la même vitesse : c'est le parallaxe qui
+   crée le volume de la scène.
+   Technique : un petit SVG par symbole (3 tracés), transformations CSS.
+   ========================================================================== */
+
+.float {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--s);
+  height: var(--s);
+  opacity: calc(var(--dim) * var(--gain));
+  animation: cross var(--t) linear var(--delay) infinite alternate;
+}
+.float__bob {
+  display: block;
+  height: 100%;
+  animation: bob var(--bob) ease-in-out var(--delay) infinite alternate;
+}
+.float svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+/* Les trois plans : plus c'est loin, plus c'est petit, flou, froid et lent */
+.float--near svg { filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.6)); }
+.float--mid svg  { filter: blur(0.6px) drop-shadow(0 10px 14px rgba(0, 0, 0, 0.5)); }
+.float--far svg  { filter: blur(2.4px); }
+.float--far .body { fill: url(#warm-far); }
+.float--far .edge, .float--far .sheen { display: none; }
+
+.edge  { fill: #5f4c33; }                 /* l'épaisseur, décalée d'un poil vers le bas */
+.body  { fill: url(#warm); }
+.sheen { fill: url(#sheen); }             /* la lumière qui tombe du haut */
+
+@keyframes cross {
+  from { transform: translate3d(0, 0, 0) rotate(calc(var(--spin) * -1)); }
+  to   { transform: translate3d(var(--travel), calc(var(--travel) * -0.22), 0) rotate(var(--spin)); }
+}
+@keyframes bob {
+  from { transform: translate3d(0, calc(var(--lift) * -1), 0); }
+  to   { transform: translate3d(0, var(--lift), 0); }
+}
+.screen--phone .float--far { display: none; }   /* sur téléphone on garde les plans nets */
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Le champagne poli : clair en haut à gauche, bronze en bas à droite -->
+    <linearGradient id="warm" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#e9d8ba"/><stop offset=".38" stop-color="#c8a97f"/>
+      <stop offset=".72" stop-color="#b5996f"/><stop offset="1" stop-color="#8d7551"/>
+    </linearGradient>
+    <linearGradient id="warm-far" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#ad9169"/><stop offset="1" stop-color="#7b6749"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0.2" y2="1">
+      <stop offset="0" stop-color="#fff8e8" stop-opacity=".55"/>
+      <stop offset=".42" stop-color="#fff8e8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="doc">
+  <header class="doc__head">
+    <div>
+      <p class="doc__eyebrow">Pluie dorée · variante B</p>
+      <h1 class="doc__title">Floating Suits</h1>
+      <p class="doc__lead">Les symboles redeviennent lisibles et deviennent des objets&nbsp;: une épaisseur bronze sous la surface champagne, un reflet en haut, une ombre portée dessous. Trois plans de profondeur dérivent à des vitesses différentes, comme des pièces suspendues dans la lumière d’une table.</p>
+    </div>
+    <div class="doc__tools">
+      <button class="tool" data-gain aria-pressed="false">Intensité · juste</button>
+      <button class="tool" data-pause aria-pressed="false">Pause</button></div>
+  </header>
+  <nav class="doc__nav">
+    <a href="index.html">↤ Comparer les 4</a>
+    <a href="a-gold-dust.html">A · Gold Dust</a>
+    <a href="b-floating-suits.html" aria-current="page">B · Floating Suits</a>
+    <a href="c-luxury-bokeh.html">C · Luxury Bokeh</a>
+    <a href="d-premium-casino.html">D · Premium Casino</a>
+    <a href="../index.html">Toutes les explorations</a>
+  </nav>
+
+  <p class="section__label">Desktop 1440 · Téléphone 390</p>
+  <div id="stages"></div>
+
+  <div class="notes">
+    <div class="note">
+      <h3>La matière</h3>
+      <p>Trois tracés par symbole&nbsp;: l’épaisseur (bronze, décalée de 1,2&nbsp;px), le corps (dégradé champagne en diagonale) et le reflet (blanc chaud qui s’éteint à 42&nbsp;%). Rien de néon&nbsp;: la lumière vient d’une seule direction.</p>
+    </div>
+    <div class="note">
+      <h3>Le mouvement</h3>
+      <p>Traversée très lente en aller-retour (90 à 150&nbsp;s) plus une respiration verticale de quelques pixels. Les plans lointains vont deux fois moins vite&nbsp;: c’est ce décalage qui fait la profondeur.</p>
+    </div>
+    <div class="note">
+      <h3>Ce qu’elle donne</h3>
+      <p>La plus «&nbsp;identité de marque&nbsp;»&nbsp;: on reconnaît les enseignes du jeu. Risque&nbsp;: à opacité trop forte, cela devient un fond d’écran de poker&nbsp;— ici volontairement tenu sous 0,45 pour les plans proches, 0,25 pour les lointains.</p>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/stage.js"></script>
+<script>
+(function () {
+  const { SUITS, NAMES, rng } = DX;
+
+  /** Un symbole en trois passes : l'épaisseur, le corps, le reflet. */
+  function solid(name) {
+    const d = SUITS[name];
+    return `<svg viewBox="0 0 24 24" aria-hidden="true">
+      <path class="edge" d="${d}" transform="translate(0.35 1.2)"/>
+      <path class="body" d="${d}"/>
+      <path class="sheen" d="${d}"/>
+    </svg>`;
+  }
+
+  const PLANS = {
+    far:  { size: [24, 38], dim: [0.17, 0.25], t: [150, 210], count: 6 },
+    mid:  { size: [44, 62], dim: [0.26, 0.36], t: [110, 160], count: 5 },
+    near: { size: [74, 106], dim: [0.32, 0.44], t: [80, 120],  count: 2 },
+  };
+
+  function paint(layer, kind) {
+    const random = rng(30291);
+    const bits = [];
+    let i = 0;
+    for (const [plan, o] of Object.entries(PLANS)) {
+      const count = kind === 'phone' ? Math.max(1, Math.round(o.count * 0.55)) : o.count;
+      for (let k = 0; k < count; k++, i++) {
+        const size = Math.round(o.size[0] + random() * (o.size[1] - o.size[0]));
+        const at = DX.spot(random, kind);
+        bits.push(`<span class="float float--${plan}" style="
+          --x:${at.x}%; --y:${at.y}%; --s:${size}px;
+          --dim:${(o.dim[0] + random() * (o.dim[1] - o.dim[0])).toFixed(3)};
+          --t:${Math.round(o.t[0] + random() * (o.t[1] - o.t[0]))}s; --delay:${-Math.round(random() * 70)}s;
+          --travel:${Math.round(40 + random() * 90)}px; --spin:${(2 + random() * 5).toFixed(1)}deg;
+          --bob:${Math.round(7 + random() * 7)}s; --lift:${Math.round(4 + random() * 8)}px;">
+          <span class="float__bob">${solid(NAMES[i % 4])}</span></span>`);
+      }
+    }
+    layer.innerHTML = bits.join('');
+  }
+
+  DX.stages(paint);
+  DX.pause();
+  DX.gain();
+})();
+</script>
+</body>
+</html>

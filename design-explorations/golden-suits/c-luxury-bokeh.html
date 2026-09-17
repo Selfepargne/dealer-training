@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C — Luxury Bokeh · Dealer Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap">
+<link rel="stylesheet" href="../shared/stage.css">
+<style>
+/* ==========================================================================
+   VARIANTE C — LUXURY BOKEH
+   La photographie plutôt que le dessin : une lumière chaude hors champ, des symboles
+   très flous qui ne sont plus que des taches de lumière, et deux ou trois symboles nets
+   et petits qui donnent la lecture de la marque. La profondeur vient du flou, pas de la taille.
+   Technique : SVG flouté + dégradés radiaux CSS. Aucune image.
+   ========================================================================== */
+
+/* La source chaude, hors cadre en haut à droite, et la vignette qui referme la scène */
+.glow {
+  position: absolute;
+  inset: -20% -10% auto -30%;
+  height: 130%;
+  background:
+    radial-gradient(52% 58% at 92% -6%, rgba(214, 188, 151, 0.14), rgba(194, 162, 122, 0.05) 42%, transparent 68%),
+    radial-gradient(70% 60% at 18% 108%, rgba(120, 100, 70, 0.07), transparent 62%);
+}
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 110% at 70% 30%, transparent 44%, rgba(6, 6, 7, 0.55) 100%);
+}
+
+/* La tache de lumière : un halo, et dedans un symbole que le flou a presque effacé */
+.blur {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--s);
+  height: var(--s);
+  opacity: calc(var(--dim) * var(--gain));
+  animation: sink var(--t) ease-in-out var(--delay) infinite alternate;
+}
+.blur::before {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(214, 188, 151, 0.5), rgba(194, 162, 122, 0.12) 55%, transparent 72%);
+  filter: blur(calc(var(--b) * 0.9));
+}
+.blur svg {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: blur(var(--b));
+}
+.blur path { fill: url(#halo); }
+
+/* Les symboles nets : petits, rares, c'est eux qui nomment la marque */
+.sharp {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--s);
+  height: var(--s);
+  opacity: calc(var(--dim) * var(--gain));
+  animation: sink var(--t) ease-in-out var(--delay) infinite alternate;
+}
+.sharp svg { display: block; width: 100%; height: 100%; }
+.sharp path { fill: none; stroke: #e2cfae; stroke-width: 1.1; vector-effect: non-scaling-stroke; }
+.sharp--full path { fill: #d9c4a1; stroke: none; }
+
+/* Presque rien : on respire, on ne traverse pas l'écran */
+@keyframes sink {
+  from { transform: translate3d(0, var(--lift), 0) scale(0.96); }
+  to   { transform: translate3d(calc(var(--lift) * -0.6), calc(var(--lift) * -1), 0) scale(1.05); }
+}
+.screen--phone .vignette { background: radial-gradient(130% 110% at 70% 24%, transparent 40%, rgba(6, 6, 7, 0.6) 100%); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <radialGradient id="halo" cx="0.42" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#f2e3c6"/><stop offset=".55" stop-color="#c8a97f"/><stop offset="1" stop-color="#8d7452"/>
+    </radialGradient>
+  </defs>
+</svg>
+
+<div class="doc">
+  <header class="doc__head">
+    <div>
+      <p class="doc__eyebrow">Pluie dorée · variante C</p>
+      <h1 class="doc__title">Luxury Bokeh</h1>
+      <p class="doc__lead">Une photographie plutôt qu’un dessin. Une lumière chaude hors champ, des symboles tellement flous qu’ils ne sont plus que des taches dorées, et trois symboles nets et minuscules qui donnent la lecture de la marque. Rien ne traverse l’écran&nbsp;: la scène respire, c’est tout.</p>
+    </div>
+    <div class="doc__tools">
+      <button class="tool" data-gain aria-pressed="false">Intensité · juste</button>
+      <button class="tool" data-pause aria-pressed="false">Pause</button></div>
+  </header>
+  <nav class="doc__nav">
+    <a href="index.html">↤ Comparer les 4</a>
+    <a href="a-gold-dust.html">A · Gold Dust</a>
+    <a href="b-floating-suits.html">B · Floating Suits</a>
+    <a href="c-luxury-bokeh.html" aria-current="page">C · Luxury Bokeh</a>
+    <a href="d-premium-casino.html">D · Premium Casino</a>
+    <a href="../index.html">Toutes les explorations</a>
+  </nav>
+
+  <p class="section__label">Desktop 1440 · Téléphone 390</p>
+  <div id="stages"></div>
+
+  <div class="notes">
+    <div class="note">
+      <h3>La matière</h3>
+      <p>Un dégradé radial chaud dans le symbole, un halo derrière, et un flou de 8 à 26&nbsp;px selon la distance. Les nets sont dessinés au trait fin d’ivoire&nbsp;: le contraste net/flou remplace le contraste de taille.</p>
+    </div>
+    <div class="note">
+      <h3>Le mouvement</h3>
+      <p>Aucune traversée&nbsp;: une respiration de 30 à 60&nbsp;s (quelques pixels, 4&nbsp;% d’échelle). C’est la variante la plus calme&nbsp;— et la moins coûteuse en lecture pendant qu’on travaille.</p>
+    </div>
+    <div class="note">
+      <h3>Ce qu’elle donne</h3>
+      <p>Très «&nbsp;club privé&nbsp;», très cinéma. Risque&nbsp;: les grands flous sont les éléments les plus chers à composer pour le navigateur&nbsp;; ici ils sont peu nombreux et jamais animés en flou.</p>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/stage.js"></script>
+<script>
+(function () {
+  const { SUITS, NAMES, rng } = DX;
+  const shape = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${SUITS[name]}"/></svg>`;
+
+  function paint(layer, kind) {
+    const random = rng(58807);
+    const phone = kind === 'phone';
+    const bits = ['<span class="glow"></span>'];
+
+    // Les taches : peu nombreuses, grandes, très floues
+    const blurs = phone ? 5 : 9;
+    for (let i = 0; i < blurs; i++) {
+      const size = Math.round((phone ? 60 : 90) + random() * (phone ? 90 : 150));
+      bits.push(`<span class="blur" style="
+        --x:${Math.round(random() * 82)}%; --y:${Math.round(random() * 74)}%; --s:${size}px;
+        --b:${Math.round(9 + random() * 17)}px; --dim:${(0.09 + random() * 0.1).toFixed(3)};
+        --t:${Math.round(34 + random() * 26)}s; --delay:${-Math.round(random() * 40)}s;
+        --lift:${Math.round(6 + random() * 12)}px;">${shape(NAMES[i % 4])}</span>`);
+    }
+    // Les nets : trois sur desktop, deux sur téléphone
+    const sharps = phone ? 2 : 3;
+    for (let i = 0; i < sharps; i++) {
+      const full = i === 1;
+      bits.push(`<span class="sharp${full ? ' sharp--full' : ''}" style="
+        --x:${18 + Math.round(random() * 66)}%; --y:${14 + Math.round(random() * 62)}%;
+        --s:${Math.round(16 + random() * 12)}px; --dim:${(0.4 + random() * 0.2).toFixed(2)};
+        --t:${Math.round(40 + random() * 20)}s; --delay:${-Math.round(random() * 30)}s;
+        --lift:${Math.round(4 + random() * 6)}px;">${shape(NAMES[(i + 2) % 4])}</span>`);
+    }
+    bits.push('<span class="vignette"></span>');
+    layer.innerHTML = bits.join('');
+  }
+
+  DX.stages(paint);
+  DX.pause();
+  DX.gain();
+})();
+</script>
+</body>
+</html>

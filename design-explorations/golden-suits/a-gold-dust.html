@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A — Gold Dust · Dealer Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap">
+<link rel="stylesheet" href="../shared/stage.css">
+<style>
+/* ==========================================================================
+   VARIANTE A — GOLD DUST
+   La matière : un trait d'or d'un demi-pixel, aucune surface pleine. Les symboles sont
+   des contours, mêlés à une véritable poussière métallique. Presque rien, mais présent.
+   Technique : SVG (contour + dégradé de trait) pour les symboles, CSS pur pour la poussière.
+   ========================================================================== */
+
+/* -- La poussière : des grains, pas des symboles ------------------------------------------- */
+.grain {
+  position: absolute;
+  left: var(--x);
+  bottom: -6%;
+  width: var(--d);
+  height: var(--d);
+  border-radius: 50%;
+  background: var(--accent-hi);
+  opacity: 0;
+  box-shadow: 0 0 var(--halo) rgba(214, 188, 151, 0.7);
+  animation: rise var(--t) linear var(--delay) infinite, twinkle var(--flick) ease-in-out var(--delay) infinite;
+}
+
+/* -- Les symboles : un contour d'un demi-pixel, jamais une surface ------------------------- */
+.dust {
+  position: absolute;
+  left: var(--x);
+  bottom: -14%;
+  width: var(--s);
+  height: var(--s);
+  animation: rise var(--t) linear var(--delay) infinite;
+}
+.dust svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.dust path {
+  fill: none;
+  stroke: url(#thread);
+  stroke-width: 1.1;             /* le trait reste un cheveu, quelle que soit la taille */
+  vector-effect: non-scaling-stroke;
+  opacity: calc(var(--dim) * var(--gain));
+  filter: drop-shadow(0 0 4px rgba(194, 162, 122, 0.45));
+}
+/* Ceux du fond : un trait encore plus fin et légèrement bronze */
+.dust--far path { stroke: url(#thread-far); stroke-width: 0.85; opacity: calc(var(--dim) * var(--gain) * 0.75); filter: none; }
+/* Le balancement latéral est porté par l'enfant : la montée reste parfaitement linéaire */
+.dust__sway, .grain { will-change: transform, opacity; }
+.dust__sway {
+  display: block;
+  height: 100%;
+  animation: sway var(--sway) ease-in-out var(--delay) infinite alternate;
+}
+
+@keyframes rise {
+  0%   { opacity: 0; transform: translate3d(0, 0, 0); }
+  10%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(0, calc(-1 * var(--travel, 128cqh)), 0); }
+}
+@keyframes sway {
+  from { transform: translate3d(calc(var(--drift) * -1), 0, 0) rotate(calc(var(--spin) * -1)); }
+  to   { transform: translate3d(var(--drift), 0, 0) rotate(var(--spin)); }
+}
+@keyframes twinkle {
+  0%, 100% { opacity: calc(var(--dim) * var(--gain) * 0.35); }
+  50%      { opacity: calc(var(--dim) * var(--gain)); }
+}
+.screen--phone .dust { animation-duration: calc(var(--t) * 0.8); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Le fil d'or : clair sur le haut du symbole, bronze en bas. Un métal, pas une couleur -->
+    <linearGradient id="thread" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#e8d6b6"/><stop offset=".45" stop-color="#c2a27a"/><stop offset="1" stop-color="#7d6749"/>
+    </linearGradient>
+    <linearGradient id="thread-far" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#9c8461"/><stop offset="1" stop-color="#6a5740"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="doc">
+  <header class="doc__head">
+    <div>
+      <p class="doc__eyebrow">Pluie dorée · variante A</p>
+      <h1 class="doc__title">Gold Dust</h1>
+      <p class="doc__lead">De la poussière de métal. Les symboles ne sont plus que des contours d’un demi-pixel, mêlés à de vrais grains d’or qui scintillent. C’est la direction la plus discrète&nbsp;: à deux mètres de l’écran on ne voit pas des symboles, on voit une matière.</p>
+    </div>
+    <div class="doc__tools">
+      <button class="tool" data-gain aria-pressed="false">Intensité · juste</button>
+      <button class="tool" data-pause aria-pressed="false">Pause</button></div>
+  </header>
+  <nav class="doc__nav">
+    <a href="index.html">↤ Comparer les 4</a>
+    <a href="a-gold-dust.html" aria-current="page">A · Gold Dust</a>
+    <a href="b-floating-suits.html">B · Floating Suits</a>
+    <a href="c-luxury-bokeh.html">C · Luxury Bokeh</a>
+    <a href="d-premium-casino.html">D · Premium Casino</a>
+    <a href="../index.html">Toutes les explorations</a>
+  </nav>
+
+  <p class="section__label">Desktop 1440 · Téléphone 390</p>
+  <div id="stages"></div>
+
+  <div class="notes">
+    <div class="note">
+      <h3>La matière</h3>
+      <p>Contour seul, jamais de surface pleine&nbsp;: un dégradé de trait clair en haut, bronze en bas, plus une lueur de 3&nbsp;px. Le trait reste un cheveu à toutes les tailles (<code>non-scaling-stroke</code>).</p>
+    </div>
+    <div class="note">
+      <h3>Le mouvement</h3>
+      <p>Montée linéaire de 60 à 120&nbsp;s, balancement latéral porté par un second calque, scintillement décalé sur les grains. 13 symboles, 40 grains&nbsp;: aucun ne se croise deux fois.</p>
+    </div>
+    <div class="note">
+      <h3>Ce qu’elle donne</h3>
+      <p>La plus sobre et la plus «&nbsp;maison de luxe&nbsp;». Risque&nbsp;: sur un écran peu contrasté, les grains peuvent passer pour des pixels morts.</p>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/stage.js"></script>
+<script>
+(function () {
+  const { glyph, rng, NAMES } = DX;
+
+  function paint(layer, kind) {
+    const random = rng(7412);
+    const bits = [];
+    const suits = kind === 'phone' ? 7 : 13;
+    const grains = kind === 'phone' ? 22 : 40;
+
+    // Les symboles : petits, fins, une majorité au loin
+    for (let i = 0; i < suits; i++) {
+      const size = Math.round(16 + random() * 26);          // 16 … 42 px
+      const far = size < 26;
+      bits.push(`<span class="dust${far ? ' dust--far' : ''}" style="
+        --x:${Math.round(random() * 96)}%; --s:${size}px;
+        --t:${Math.round(62 + random() * 58)}s; --delay:${-Math.round(random() * 90)}s;
+        --dim:${(0.62 + random() * 0.33).toFixed(2)};
+        --drift:${Math.round(6 + random() * 16)}px; --spin:${Math.round(2 + random() * 5)}deg;
+        --sway:${Math.round(9 + random() * 9)}s;">
+        <span class="dust__sway">${glyph(NAMES[i % 4])}</span></span>`);
+    }
+    // La poussière : des grains d'or, plus rapides et plus nombreux
+    for (let i = 0; i < grains; i++) {
+      const d = (1.4 + random() * 2).toFixed(1);
+      bits.push(`<span class="grain" style="
+        --x:${Math.round(random() * 99)}%; --d:${d}px; --halo:${(3 + random() * 5).toFixed(1)}px;
+        --t:${Math.round(34 + random() * 46)}s; --delay:${-Math.round(random() * 80)}s;
+        --dim:${(0.42 + random() * 0.48).toFixed(2)}; --flick:${(3 + random() * 6).toFixed(1)}s;"></span>`);
+    }
+    layer.innerHTML = bits.join('');
+  }
+
+  DX.stages(paint);
+  DX.pause();
+  DX.gain();
+})();
+</script>
+</body>
+</html>

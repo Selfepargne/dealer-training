@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hero — comparer les 3 · Dealer Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap">
+<link rel="stylesheet" href="../shared/stage.css">
+<style>
+/* Les trois compositions, l'une sous l'autre, dans leur contexte de tableau de bord. */
+.stack3 { display: grid; gap: 30px; }
+.card { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); overflow: hidden; }
+.card__view { position: relative; overflow: hidden; background: var(--bg); }
+.card__view iframe { border: 0; transform-origin: top left; pointer-events: none; }
+.card__body { display: flex; align-items: flex-start; gap: 18px; padding: 20px 24px 22px; }
+.card__num {
+  flex: 0 0 auto; width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border: 1px solid var(--accent-line); border-radius: 50%;
+  font-family: var(--font-display); font-size: 1.25rem; color: var(--accent-hi);
+}
+.card h2 { margin: 0 0 4px; font-family: var(--font-display); font-size: 1.4rem; font-weight: 500; color: var(--ivory); }
+.card p { margin: 0; max-width: 92ch; color: var(--text-2); font-size: var(--fs-small); line-height: 1.6; }
+.card a { display: inline-block; margin-top: 10px; color: var(--accent); font-size: var(--fs-small); text-decoration: none; border-bottom: 1px solid var(--accent-line); }
+.card a:hover { color: var(--accent-hi); }
+</style>
+</head>
+<body>
+<div class="doc">
+  <header class="doc__head">
+    <div>
+      <p class="doc__eyebrow">Exploration · hero du tableau de bord</p>
+      <h1 class="doc__title">Trois compositions</h1>
+      <p class="doc__lead">Les trois propositions sont montrées dans le tableau de bord, à la bonne largeur, avec le vrai texte et le vrai bouton. Elles vont du plus descriptif (une table) au plus abstrait (une identité). Ouvrez-en une pour voir aussi le rendu téléphone et les notes techniques.</p>
+    </div>
+  </header>
+  <nav class="doc__nav">
+    <a href="index.html" aria-current="page">Comparer les 3</a>
+    <a href="1-premium-dealer-table.html">1 · Premium Dealer Table</a>
+    <a href="2-dealer-desk.html">2 · Dealer Desk</a>
+    <a href="3-abstract-luxury.html">3 · Abstract Casino Luxury</a>
+    <a href="../index.html">Toutes les explorations</a>
+  </nav>
+
+  <p class="section__label">Du plus descriptif au plus abstrait</p>
+  <div class="stack3" id="stack"></div>
+</div>
+
+<script src="../shared/stage.js"></script>
+<script>
+(function () {
+  const HEROES = [
+    { num: '1', file: '1-premium-dealer-table.html', name: 'Premium Dealer Table',
+      text: 'Un morceau de table vu légèrement de dessus&nbsp;: rail cuir surpiqué, feutre éclairé par une seule lampe, deux cartes en éventail, trois piles de jetons de valeurs différentes, le sabot au bord du cadre. La plus <em>descriptive</em> — on comprend le métier en une seconde, au risque de ressembler à une application de jeu.' },
+    { num: '2', file: '2-dealer-desk.html', name: 'Dealer Desk',
+      text: 'Le poste du croupier vu de près&nbsp;: rack de jetons à cinq tubes, bouton DEALER posé à plat, deux cartes face cachée au dos champagne, une petite pile. On est derrière le matériel, du côté du professionnel. La plus <em>métier</em>.' },
+    { num: '3', file: '3-abstract-luxury.html', name: 'Abstract Casino Luxury',
+      text: 'Aucune scène&nbsp;: l’arc du rail en deux traits, une enseigne de pique estampée dans le métal et coupée par le cadre, deux cartes réduites à leur silhouette, trois tranches de jetons. Beaucoup de vide, un seul éclat très lent. La plus <em>identité de marque</em>.' },
+  ];
+  const W = 1440, H = 580;
+
+  document.getElementById('stack').innerHTML = HEROES.map((h) => `
+    <div class="card">
+      <div class="card__view"><iframe src="${h.file}?bare=1" width="${W}" height="${H}" title="${h.name}" scrolling="no"></iframe></div>
+      <div class="card__body">
+        <span class="card__num">${h.num}</span>
+        <div>
+          <h2>${h.name}</h2>
+          <p>${h.text}</p>
+          <a href="${h.file}">Voir en grand, desktop et téléphone →</a>
+        </div>
+      </div>
+    </div>`).join('');
+
+  function fit() {
+    document.querySelectorAll('.card__view').forEach((view) => {
+      const s = view.clientWidth / W;
+      view.firstElementChild.style.transform = `scale(${s})`;
+      view.style.height = Math.ceil(H * s) + 'px';
+    });
+  }
+  fit();
+  window.addEventListener('resize', fit);
+  setTimeout(fit, 500);
+})();
+</script>
+</body>
+</html>

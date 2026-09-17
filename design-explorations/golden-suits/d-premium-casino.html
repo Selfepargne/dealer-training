@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>D — Premium Casino · Dealer Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap">
+<link rel="stylesheet" href="../shared/stage.css">
+<style>
+/* ==========================================================================
+   VARIANTE D — PREMIUM CASINO
+   Deux matières, une seule intention : la marque marquée dans le support.
+     · estampé   — feuille de métal brossé, liseré sombre, et un éclat qui traverse
+                   le symbole toutes les quinze secondes. C'est le seul mouvement fort.
+     · gravé     — le symbole est creusé dans le noir : arête claire en bas, ombre en haut.
+   Les symboles ne tombent pas au hasard : ils suivent la courbe d'un rail et s'alignent.
+   Technique : SVG (dégradés, clip-path, éclat) + un arc en trait d'un pixel.
+   ========================================================================== */
+
+/* Le rail : une courbe d'un seul pixel qui donne une raison d'être aux symboles */
+.rail { position: absolute; inset: -46% -30% auto auto; width: 132%; aspect-ratio: 1/1; }
+.rail svg { width: 100%; height: 100%; }
+.rail circle { fill: none; stroke: var(--accent-line); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: .65; }
+.rail circle + circle { opacity: .18; }
+
+.mark {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--s);
+  height: var(--s);
+  animation: hover var(--t) ease-in-out var(--delay) infinite alternate;
+}
+.mark svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+/* — Estampé : la feuille de métal ------------------------------------------------------------ */
+.mark--stamp { opacity: calc(var(--dim) * var(--gain)); }
+.metal { fill: url(#brushed); }
+.rim { fill: none; stroke: #2a2117; stroke-width: 0.6; vector-effect: non-scaling-stroke; opacity: .9; }
+.sweep {
+  fill: url(#glint);
+  transform-box: fill-box;
+  animation: glint var(--g) linear var(--gd) infinite;
+}
+@keyframes glint {
+  0%    { opacity: 0; transform: rotate(18deg) translateX(-30px); }
+  2%    { opacity: .85; }
+  14%   { opacity: .85; transform: rotate(18deg) translateX(30px); }
+  16%, 100% { opacity: 0; transform: rotate(18deg) translateX(30px); }
+}
+
+/* — Gravé : le symbole est creusé dans le noir ----------------------------------------------- */
+.mark--press { opacity: calc(var(--dim) * var(--gain)); }
+.mark--press .metal { fill: #08080a; }
+.mark--press svg { filter: drop-shadow(0 1.7px 0 rgba(226, 207, 174, 0.6)) drop-shadow(0 -1.4px 1px rgba(0, 0, 0, 0.95)); }
+.mark--press .rim { stroke: rgba(226, 207, 174, 0.18); }
+.mark--press .sweep { display: none; }
+
+/* — Écusson : le symbole dans un cercle, comme un monogramme d'école -------------------------- */
+.crest { position: absolute; left: var(--x); top: var(--y); width: var(--s); height: var(--s); opacity: calc(var(--dim) * var(--gain));
+  display: grid; place-items: center; border: 1px solid var(--accent-line); border-radius: 50%;
+  animation: hover var(--t) ease-in-out var(--delay) infinite alternate; }
+.crest svg { width: 44%; height: 44%; }
+.crest .metal { fill: url(#brushed); }
+
+@keyframes hover {
+  from { transform: translate3d(0, var(--lift), 0) rotate(calc(var(--spin) * -1)); }
+  to   { transform: translate3d(calc(var(--lift) * 0.5), calc(var(--lift) * -1), 0) rotate(var(--spin)); }
+}
+.screen--phone .rail { inset: -30% -60% auto auto; width: 180%; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Métal brossé : deux passages clairs, deux creux bronze. C'est la double crête qui fait le métal -->
+    <linearGradient id="brushed" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#6d5a3f"/><stop offset=".2" stop-color="#e5d3b4"/>
+      <stop offset=".42" stop-color="#a98d68"/><stop offset=".62" stop-color="#f0e2c7"/>
+      <stop offset=".84" stop-color="#8b7352"/><stop offset="1" stop-color="#5e4d36"/>
+    </linearGradient>
+    <linearGradient id="glint" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff6e4" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#fff6e4" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#fff6e4" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="doc">
+  <header class="doc__head">
+    <div>
+      <p class="doc__eyebrow">Pluie dorée · variante D</p>
+      <h1 class="doc__title">Premium Casino</h1>
+      <p class="doc__lead">La présence la plus forte, obtenue par la matière et non par le nombre. Deux traitements&nbsp;: des symboles <em>estampés</em> dans une feuille de métal brossé, qu’un éclat traverse de temps en temps, et des symboles <em>gravés</em> dans le noir, visibles seulement par leur arête claire. Ils suivent la courbe d’un rail&nbsp;: rien n’est posé au hasard.</p>
+    </div>
+    <div class="doc__tools">
+      <button class="tool" data-gain aria-pressed="false">Intensité · juste</button>
+      <button class="tool" data-pause aria-pressed="false">Pause</button></div>
+  </header>
+  <nav class="doc__nav">
+    <a href="index.html">↤ Comparer les 4</a>
+    <a href="a-gold-dust.html">A · Gold Dust</a>
+    <a href="b-floating-suits.html">B · Floating Suits</a>
+    <a href="c-luxury-bokeh.html">C · Luxury Bokeh</a>
+    <a href="d-premium-casino.html" aria-current="page">D · Premium Casino</a>
+    <a href="../index.html">Toutes les explorations</a>
+  </nav>
+
+  <p class="section__label">Desktop 1440 · Téléphone 390</p>
+  <div id="stages"></div>
+
+  <div class="notes">
+    <div class="note">
+      <h3>La matière</h3>
+      <p>Métal brossé&nbsp;: six arrêts de dégradé, deux crêtes claires et deux creux bronze, liseré sombre d’un demi-pixel. Le gravé n’est pas doré du tout&nbsp;: il est plus noir que le fond, avec une seule arête champagne en bas.</p>
+    </div>
+    <div class="note">
+      <h3>Le mouvement</h3>
+      <p>Presque immobile&nbsp;: une oscillation de 40 à 70&nbsp;s. Le seul geste est l’éclat qui traverse un symbole estampé, décalé de plusieurs secondes d’un symbole à l’autre&nbsp;— on le remarque une fois, pas dix.</p>
+    </div>
+    <div class="note">
+      <h3>Ce qu’elle donne</h3>
+      <p>La plus «&nbsp;grande maison&nbsp;»&nbsp;: gravure, écusson, alignement. Risque&nbsp;: c’est la plus riche, donc celle qui demande le plus de retenue sur le nombre (ici 9 signes sur desktop, 5 sur téléphone).</p>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/stage.js"></script>
+<script>
+(function () {
+  const { SUITS, NAMES, rng } = DX;
+
+  /** Un symbole estampé : la feuille, le liseré, et l'éclat découpé dans la forme. */
+  function stamp(name, i) {
+    const d = SUITS[name];
+    return `<svg viewBox="0 0 24 24" aria-hidden="true">
+      <defs><clipPath id="cut${i}"><path d="${d}"/></clipPath></defs>
+      <path class="metal" d="${d}"/>
+      <path class="rim" d="${d}"/>
+      <g clip-path="url(#cut${i})"><rect class="sweep" x="-6" y="-12" width="12" height="48"/></g>
+    </svg>`;
+  }
+  const press = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="metal" d="${SUITS[name]}"/><path class="rim" d="${SUITS[name]}"/></svg>`;
+  const crestGlyph = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="metal" d="${SUITS[name]}"/></svg>`;
+
+  /* Les positions suivent la courbe du rail, en haut à droite, plus deux signes bas à gauche
+     pour équilibrer. Choisies à la main : cette variante est composée, pas semée. */
+  const DESKTOP = [
+    { kind: 'press', x: 30, y: 70, s: 108, dim: 1 },
+    { kind: 'stamp', x: 54, y: 11, s: 34, dim: 0.4 },
+    { kind: 'crest', x: 47, y: 60, s: 58, dim: 0.62 },
+    { kind: 'stamp', x: 64, y: 33, s: 24, dim: 0.32 },
+    { kind: 'press', x: 62, y: 78, s: 70, dim: 0.9 },
+    { kind: 'stamp', x: 74, y: 13, s: 54, dim: 0.52 },
+    { kind: 'stamp', x: 85, y: 47, s: 32, dim: 0.38 },
+    { kind: 'crest', x: 89, y: 73, s: 42, dim: 0.5 },
+    { kind: 'stamp', x: 94, y: 23, s: 26, dim: 0.34 },
+  ];
+  const PHONE = [
+    { kind: 'press', x: 12, y: 64, s: 86, dim: 1 },
+    { kind: 'stamp', x: 66, y: 11, s: 42, dim: 0.48 },
+    { kind: 'crest', x: 70, y: 46, s: 48, dim: 0.58 },
+    { kind: 'stamp', x: 26, y: 38, s: 24, dim: 0.32 },
+    { kind: 'press', x: 78, y: 82, s: 50, dim: 0.85 },
+  ];
+
+  function paint(layer, kind) {
+    const random = rng(41190);
+    const list = kind === 'phone' ? PHONE : DESKTOP;
+    const bits = [`<span class="rail"><svg viewBox="0 0 200 200" aria-hidden="true">
+      <circle cx="100" cy="100" r="86"/><circle cx="100" cy="100" r="74"/></svg></span>`];
+    list.forEach((o, i) => {
+      const name = NAMES[i % 4];
+      const style = `--x:${o.x}%; --y:${o.y}%; --s:${o.s}px; --dim:${o.dim};
+        --t:${Math.round(42 + random() * 28)}s; --delay:${-Math.round(random() * 30)}s;
+        --lift:${Math.round(3 + random() * 7)}px; --spin:${(1 + random() * 3).toFixed(1)}deg;
+        --g:${Math.round(14 + random() * 8)}s; --gd:${-Math.round(random() * 20)}s;`;
+      if (o.kind === 'crest') bits.push(`<span class="crest" style="${style}">${crestGlyph(name)}</span>`);
+      else if (o.kind === 'press') bits.push(`<span class="mark mark--press" style="${style}">${press(name)}</span>`);
+      else bits.push(`<span class="mark mark--stamp" style="${style}">${stamp(name, `${kind}${i}`)}</span>`);
+    });
+    layer.innerHTML = bits.join('');
+  }
+
+  DX.stages(paint);
+  DX.pause();
+  DX.gain();
+})();
+</script>
+</body>
+</html>

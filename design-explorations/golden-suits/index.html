@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pluie dorée — comparer les 4 · Dealer Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap">
+<link rel="stylesheet" href="../shared/stage.css">
+<style>
+/* Quatre vignettes vivantes : chaque variante est chargée telle quelle, en mode nu, et réduite. */
+.grid4 { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+@media (max-width: 1100px) { .grid4 { grid-template-columns: 1fr; } }
+
+.card { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); overflow: hidden; }
+.card__view { position: relative; overflow: hidden; background: var(--bg); }
+.card__view iframe { border: 0; transform-origin: top left; pointer-events: none; }
+.card__body { display: flex; align-items: flex-start; gap: 16px; padding: 18px 20px 20px; }
+.card__letter {
+  flex: 0 0 auto;
+  width: 38px; height: 38px;
+  display: grid; place-items: center;
+  border: 1px solid var(--accent-line); border-radius: 50%;
+  font-family: var(--font-display); font-size: 1.2rem; color: var(--accent-hi);
+}
+.card h2 { margin: 0 0 4px; font-family: var(--font-display); font-size: 1.3rem; font-weight: 500; color: var(--ivory); }
+.card p { margin: 0; color: var(--text-2); font-size: var(--fs-small); line-height: 1.55; }
+.card a { display: inline-block; margin-top: 10px; color: var(--accent); font-size: var(--fs-small); text-decoration: none; border-bottom: 1px solid var(--accent-line); }
+.card a:hover { color: var(--accent-hi); }
+</style>
+</head>
+<body>
+<div class="doc">
+  <header class="doc__head">
+    <div>
+      <p class="doc__eyebrow">Exploration · pluie dorée</p>
+      <h1 class="doc__title">Quatre directions, pas quatre réglages</h1>
+      <p class="doc__lead">Les quatre variantes tournent réellement dans les vignettes ci-dessous. Elles ne diffèrent pas par un pourcentage d’opacité&nbsp;: la matière, le nombre, la vitesse et la façon de composer sont différents dans chacune. Ouvrez-en une pour la voir en grand, avec le réglage d’intensité et le bouton pause.</p>
+    </div>
+  </header>
+  <nav class="doc__nav">
+    <a href="index.html" aria-current="page">Comparer les 4</a>
+    <a href="a-gold-dust.html">A · Gold Dust</a>
+    <a href="b-floating-suits.html">B · Floating Suits</a>
+    <a href="c-luxury-bokeh.html">C · Luxury Bokeh</a>
+    <a href="d-premium-casino.html">D · Premium Casino</a>
+    <a href="../index.html">Toutes les explorations</a>
+  </nav>
+
+  <p class="section__label">Les quatre, au même moment</p>
+  <div class="grid4" id="grid"></div>
+</div>
+
+<script src="../shared/stage.js"></script>
+<script>
+(function () {
+  const VARIANTS = [
+    { letter: 'A', file: 'a-gold-dust.html', name: 'Gold Dust',
+      text: 'Contours d’un cheveu et vraie poussière d’or qui scintille. 13 symboles, 40 grains. La plus discrète&nbsp;: on voit une matière avant de voir des enseignes.' },
+    { letter: 'B', file: 'b-floating-suits.html', name: 'Floating Suits',
+      text: 'Des objets&nbsp;: épaisseur bronze, surface champagne, reflet, ombre portée. Trois plans de profondeur à des vitesses différentes. La plus lisible.' },
+    { letter: 'C', file: 'c-luxury-bokeh.html', name: 'Luxury Bokeh',
+      text: 'Une photographie&nbsp;: lumière hors champ, symboles fondus en taches dorées, trois signes nets. Aucune traversée, la scène respire.' },
+    { letter: 'D', file: 'd-premium-casino.html', name: 'Premium Casino',
+      text: 'Estampé et gravé&nbsp;: métal brossé, arêtes claires, écussons, alignement sur l’arc d’un rail. La présence la plus forte, par la matière.' },
+  ];
+  const W = 1440, H = 560;
+
+  document.getElementById('grid').innerHTML = VARIANTS.map((v) => `
+    <div class="card">
+      <div class="card__view"><iframe src="${v.file}?bare=1" width="${W}" height="${H}" title="${v.name}" scrolling="no"></iframe></div>
+      <div class="card__body">
+        <span class="card__letter">${v.letter}</span>
+        <div>
+          <h2>${v.name}</h2>
+          <p>${v.text}</p>
+          <a href="${v.file}">Voir en grand, avec le réglage d’intensité →</a>
+        </div>
+      </div>
+    </div>`).join('');
+
+  // Chaque vignette est réduite à la largeur de sa colonne
+  function fit() {
+    document.querySelectorAll('.card__view').forEach((view) => {
+      const s = view.clientWidth / W;
+      const frame = view.firstElementChild;
+      frame.style.transform = `scale(${s})`;
+      view.style.height = Math.ceil(H * s) + 'px';
+    });
+  }
+  fit();
+  window.addEventListener('resize', fit);
+  setTimeout(fit, 500);
+})();
+</script>
+</body>
+</html>
