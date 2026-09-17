@@ -1,0 +1,288 @@
+/* ==========================================================================
+   Décoration — la signature de l'application (js/components/GoldenSuits.js)
+   Une pluie d'enseignes dorées, au trait, sur le FOND DU SITE : derrière la barre latérale,
+   entre les panneaux, dans toutes les marges. Jamais devant un texte, jamais cliquable,
+   jamais sur un écran d'exercice, et presque gratuite à faire tourner.
+   Le niveau vient de la route : [data-decor="hero|lively|normal|calm|subtle|still|none"].
+
+   Ce fichier porte aussi le hero photographique du tableau de bord et la tuile de grade.
+   ========================================================================== */
+
+.suits {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;          /* la couche ne provoque jamais de recalcul de la page */
+}
+/* Les écrans, la barre latérale et la barre d'onglets passent au-dessus : la pluie se voit
+   au travers de leurs fonds translucides et dans les espaces vides. */
+.shell > .sidebar,
+.shell > .main,
+.shell > .tabbar { position: relative; z-index: 1; }
+
+/* Une enseigne : un trait d'or d'un pixel, aucune surface pleine. C'est la matière « Gold Dust ». */
+.suits__item {
+  position: absolute;
+  left: var(--x);
+  bottom: -12vh;
+  font-size: var(--size);
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1.1px var(--gold);
+  opacity: 0;
+  filter: drop-shadow(0 0 4px rgba(226, 197, 127, 0.3));
+  will-change: transform, opacity;
+  animation: suit-drift var(--duration) linear var(--delay) infinite;
+}
+/* Les lointaines : trait plus fin, plus bronze, aucune lueur — c'est ce qui donne la profondeur */
+/* Celles qui descendent entrent par le haut : sinon elles quitteraient l'écran sans jamais s'y montrer */
+.suits__item--down { bottom: auto; top: -14vh; }
+.suits__item--far {
+  -webkit-text-stroke-width: 0.85px;
+  -webkit-text-stroke-color: var(--accent-lo);
+  filter: none;
+}
+
+/* Les grains d'or : la poussière de métal qui accompagne les enseignes */
+.suits__grain {
+  position: absolute;
+  left: var(--x);
+  bottom: -6vh;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: var(--gold-hi);
+  opacity: 0;
+  box-shadow: 0 0 var(--halo) rgba(247, 227, 172, 0.55);
+  will-change: transform, opacity;
+  animation: suit-drift var(--duration) linear var(--delay) infinite;
+}
+
+/* Elles montent (quelques-unes descendent), dérivent un peu, tournent de quelques degrés */
+@keyframes suit-drift {
+  0%   { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg); }
+  12%  { opacity: calc(var(--dim) * var(--suit-gain, 1)); }
+  50%  { transform: translate3d(calc(var(--drift) * 0.6), calc(var(--way) * -62vh), 0) rotate(var(--spin)); }
+  85%  { opacity: calc(var(--dim) * var(--suit-gain, 1)); }
+  100% { opacity: 0; transform: translate3d(var(--drift), calc(var(--way) * -124vh), 0) rotate(calc(var(--spin) * 2)); }
+}
+
+/* ---- How many suits each screen shows ------------------------------------------------------- */
+
+/* Le tableau de bord est la vitrine : les mêmes enseignes, un peu plus présentes */
+[data-decor="hero"] { --suit-gain: 1.25; }
+[data-decor="lively"] { --suit-gain: 1.15; }
+[data-decor="subtle"],
+[data-decor="still"] { --suit-gain: 0.8; }
+
+[data-decor="hero"] .suits__item:nth-of-type(n + 15),
+[data-decor="lively"] .suits__item:nth-of-type(n + 12),
+[data-decor="normal"] .suits__item:nth-of-type(n + 10),
+[data-decor="calm"] .suits__item:nth-of-type(n + 8),
+[data-decor="subtle"] .suits__item:nth-of-type(n + 6),
+[data-decor="still"] .suits__item:nth-of-type(n + 5) { display: none; }
+
+[data-decor="calm"] .suits__grain:nth-of-type(n + 26),
+[data-decor="subtle"] .suits__grain:nth-of-type(n + 18),
+[data-decor="still"] .suits__grain:nth-of-type(n + 12) { display: none; }
+
+/* Défis : un rien plus vif. Réglages : presque immobile. */
+[data-decor="lively"] .suits__item { animation-duration: calc(var(--duration) * 0.82); }
+[data-decor="calm"] .suits__item,
+[data-decor="subtle"] .suits__item { animation-duration: calc(var(--duration) * 1.2); }
+[data-decor="still"] .suits__item { animation-duration: calc(var(--duration) * 2); }
+
+/* Exercices, sessions, tout écran où une main doit être lue : aucune décoration, rien qui tourne */
+[data-decor="none"] .suits { display: none; }
+
+/* ---- Moins d'animation demandée : la pluie s'arrête et reste très discrète ------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="full"]) .suits__item,
+  html:not([data-motion="full"]) .suits__grain {
+    animation: none;
+    opacity: calc(var(--dim) * 0.7);
+    transform: translate3d(0, -45vh, 0) rotate(var(--spin));
+  }
+}
+html[data-motion="reduced"] .suits__item,
+html[data-motion="reduced"] .suits__grain {
+  animation: none;
+  opacity: calc(var(--dim) * 0.7);
+  transform: translate3d(0, -45vh, 0) rotate(var(--spin));
+}
+
+/* ---- Tablette et téléphone : moins nombreuses et plus petites ------------------------------- */
+
+@media (max-width: 1179px) {
+  .suits__item { font-size: calc(var(--size) * 0.82); }
+  [data-decor] .suits__item:nth-of-type(n + 9) { display: none; }
+  [data-decor] .suits__grain:nth-of-type(n + 22) { display: none; }
+  [data-decor="subtle"] .suits__item:nth-of-type(n + 6),
+  [data-decor="still"] .suits__item:nth-of-type(n + 5) { display: none; }
+}
+@media (max-width: 767px) {
+  .suits__item { font-size: calc(var(--size) * 0.7); filter: none; }
+  [data-decor] .suits__item:nth-of-type(n + 6) { display: none; }
+  [data-decor] .suits__grain:nth-of-type(n + 14) { display: none; }
+  [data-decor="subtle"] .suits__item:nth-of-type(n + 5),
+  [data-decor="still"] .suits__item:nth-of-type(n + 4) { display: none; }
+}
+
+/* ==========================================================================
+   Le hero du tableau de bord : la photographie de la table.
+   La photographie ne porte aucun texte : le dégradé ne sert donc qu'à porter le titre.
+   Il part du noir à l'extrême gauche et s'éteint à 42 %, par paliers doux — un dégradé
+   à deux arrêts se verrait par bandes. La date, le prénom et le module restent du vrai texte.
+   ========================================================================== */
+
+.hero--photo {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  min-height: 430px;
+  padding: var(--s-7);
+  border-radius: var(--radius-lg);
+  background: #060806;
+  box-shadow: 0 40px 80px -50px #000;
+}
+.hero__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 100% 50%;   /* la gravure du coin reste entière : on rogne à gauche, sous le noir */
+}
+.hero__veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    rgb(5, 7, 5) 0%,
+    rgba(5, 7, 5, 0.98) 7%,
+    rgba(5, 7, 5, 0.93) 14%,
+    rgba(5, 7, 5, 0.84) 21%,
+    rgba(5, 7, 5, 0.7) 27%,
+    rgba(5, 7, 5, 0.5) 32%,
+    rgba(5, 7, 5, 0.3) 36%,
+    rgba(5, 7, 5, 0.13) 39%,
+    rgba(5, 7, 5, 0) 42%);
+}
+
+.hero--photo .hero__body { position: relative; z-index: 2; max-width: 34ch; }
+.hero--photo .hero__title {
+  font-size: clamp(2.3rem, 1.5rem + 2.6vw, 3.6rem);
+  color: #fff;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.85);
+}
+.hero--photo .hero__title em { font-style: normal; color: var(--gold-hi); }
+.hero--photo .hero__lead { color: #d9d3c6; text-shadow: 0 1px 20px rgba(0, 0, 0, 0.8); }
+/* La ligne de session passe sous le bouton : elle ne croise jamais la table */
+.hero--photo .hero__actions { flex-direction: column; align-items: flex-start; gap: var(--s-3); }
+.hero--photo .hero__resume { color: var(--text-2); }
+
+/* La devise de l'académie, en bas à gauche, comme sur la photographie */
+.hero__quote {
+  position: relative;
+  z-index: 2;
+  max-width: 26ch;
+  margin: var(--s-6) 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.15rem;
+  line-height: 1.35;
+  color: #cfc7b6;
+}
+.hero__quote::after {
+  content: "";
+  display: block;
+  width: 68px;
+  height: 1px;
+  margin-top: var(--s-4);
+  background: var(--gold-line);
+}
+
+@media (max-width: 1179px) {
+  .hero--photo { min-height: 380px; padding: var(--s-6); }
+}
+@media (max-width: 767px) {
+  /* La bande est presque carrée : le dégradé descend du haut au lieu d'aller vers la droite,
+     et le cadrage se décale pour que la gravure du coin sorte du champ. */
+  .hero--photo { min-height: 320px; padding: var(--s-5); }
+  .hero__photo { object-position: 40% 50%; }
+  .hero__veil {
+    background: linear-gradient(176deg,
+      rgba(4, 6, 4, 0.96) 0%,
+      rgba(4, 6, 4, 0.9) 34%,
+      rgba(4, 6, 4, 0.66) 58%,
+      rgba(4, 6, 4, 0.3) 78%,
+      rgba(4, 6, 4, 0.12) 100%);
+  }
+  .hero--photo .hero__body { max-width: none; }
+  .hero--photo .hero__resume { text-shadow: 0 1px 12px rgba(0, 0, 0, 0.95); }
+  .hero__quote { display: none; }
+}
+
+/* ==========================================================================
+   La tuile de grade : le premier des chiffres clés, à la manière de la référence
+   ========================================================================== */
+
+/* La rangée : une tuile large puis trois mesures, comme sur la référence */
+.kpis {
+  display: grid;
+  gap: var(--s-5);
+  grid-template-columns: 2.1fr 1fr 1fr 1fr;
+}
+@media (max-width: 1179px) { .kpis { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 679px) { .kpis { grid-template-columns: 1fr; } }
+
+.stat--grade { gap: var(--s-3); }
+.grade { display: flex; align-items: center; gap: var(--s-4); }
+.grade__name {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  line-height: 1.08;
+  color: var(--ivory);
+}
+.grade__pct {
+  margin-left: auto;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 1.85rem;
+  font-weight: 600;
+  background: linear-gradient(180deg, #fffaf0, var(--gold-hi) 45%, var(--gold-mid));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.stat--grade .bar__fill {
+  background: linear-gradient(90deg, var(--gold-lo), var(--gold-hi));
+  box-shadow: 0 0 12px rgba(226, 197, 127, 0.45);
+}
+.grade__next {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.grade__next strong { color: var(--gold); font-weight: 600; }
+.grade__xp { margin-left: auto; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.grade__next svg { width: 16px; height: 16px; flex: none; color: var(--gold); }
+
+@media (max-width: 479px) {
+  .grade { gap: var(--s-4); }
+  .grade__name { font-size: 1.3rem; }
+  .grade__pct { font-size: 1.5rem; }
+}
+
+/* ==========================================================================
+   La barre latérale : accents dorés seulement. Son fond est translucide (css/main.css),
+   la pluie passe donc derrière elle sans jamais toucher le texte de navigation.
+   ========================================================================== */
+
+.nav__item:hover { background: linear-gradient(90deg, var(--gold-wash), transparent 70%); }
+.brand__mark { box-shadow: 0 0 0 1px var(--gold-line); border-radius: 10px; }

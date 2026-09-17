@@ -1,6 +1,6 @@
 /* English texts. Keep the same keys as fr.js. Run: node tests/i18n.test.js */
 window.DT.translations.en = {
-  app: { name: 'Dealer Training', academy: 'Academy' },
+  app: { name: 'Dealer Training', academy: 'Academy', motto: '"Master the table, master the game, master yourself."' },
 
   nav: {
     dashboard: 'Dashboard',

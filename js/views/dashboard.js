@@ -6,7 +6,7 @@
   const progression = DT.core.progression;
   const { SKILLS, byId } = DT.data.modules;
   const { DAILY } = DT.data.challenges;
-  const { Button, TextLink, Badge, Panel, StatTile, ProgressBar, EmptyState, ModuleArt, Icon } = DT.components;
+  const { Button, TextLink, Badge, Panel, StatTile, ProgressBar, EmptyState, ModuleArt, Icon, RankBadge } = DT.components;
 
   /** Where "Continue training" goes: last playable module, otherwise Hold'em. */
   function continueTarget(data) {
@@ -14,31 +14,76 @@
     return last && last.available ? last.id : 'holdem';
   }
 
+  /**
+    * The greeting band: one photograph of a dealer table, and over it the real text.
+    * The photograph carries no words of its own, so the veil (css/decor.css) is only there to
+    * carry the title: it goes from black on the far left to nothing at 42 %.
+    * Decorative image: alt is empty on purpose — the greeting is right beside it, in HTML.
+    */
+  function heroPhoto() {
+    return [
+      h('img', {
+        class: 'hero__photo',
+        src: 'assets/hero-table-1600.webp',
+        srcset: 'assets/hero-table-1100.webp 1100w, assets/hero-table-1600.webp 1600w',
+        sizes: '(max-width: 767px) 100vw, (max-width: 1179px) calc(100vw - 120px), calc(100vw - 360px)',
+        width: 1600,
+        height: 641,
+        alt: '',
+        decoding: 'async',
+        fetchpriority: 'high',
+      }),
+      h('span', { class: 'hero__veil', 'aria-hidden': 'true' }),
+    ];
+  }
+
   function hero(data) {
     const t = DT.i18n.t;
     const name = (data.profile.name || '').trim();
     const target = continueTarget(data);
-    return h('section', { class: 'hero', 'aria-labelledby': 'dash-title' },
-      h('div', null,
+    const greeting = name
+      ? [`${fmt.greeting()}, `, h('em', null, name)]
+      : [fmt.greeting()];
+    return h('section', { class: 'hero hero--photo', 'aria-labelledby': 'dash-title' },
+      heroPhoto(),
+      h('div', { class: 'hero__body' },
         h('p', { class: 'eyebrow eyebrow--accent' }, fmt.longDate()),
-        h('h1', { class: 'display hero__title', id: 'dash-title' }, name ? `${fmt.greeting()}, ${name}` : fmt.greeting()),
+        h('h1', { class: 'display hero__title', id: 'dash-title' }, greeting),
         h('p', { class: 'hero__lead' }, t('dashboard.lead')),
         h('div', { class: 'hero__actions' },
-          Button({ label: t('dashboard.continue'), size: 'lg', arrow: true, href: `#/train/${target}` }),
-          h('p', { class: 'hero__resume' }, t(`modules.${target}.name`), ' · ', t('dashboard.sessionLength', { n: 20 })))));
+          Button({ label: t('dashboard.continue'), size: 'lg', icon: 'play', arrow: true, href: `#/train/${target}` }),
+          h('p', { class: 'hero__resume' }, t(`modules.${target}.name`), ' · ', t('dashboard.sessionLength', { n: 20 })))),
+      h('p', { class: 'hero__quote' }, t('app.motto')));
+  }
+
+  /**
+   * The grade tile: the wide first tile of the row — level, rank, progress to the next one
+   * and the XP counter. Same data as the rank panel of the progress screen, in a tile.
+   */
+  function gradeTile(data, o) {
+    const t = DT.i18n.t;
+    const s = progression.rankStatus(data);
+    return h('article', { class: 'stat stat--grade' },
+      h('div', { class: 'stat__label' }, h('span', { class: 'eyebrow' }, t('dashboard.currentRank'))),
+      h('div', { class: 'grade' },
+        RankBadge(s.level, { size: 54, state: 'current' }),
+        h('span', { class: 'grade__name' }, t(`ranks.${s.rank.id}.name`)),
+        s.next ? h('span', { class: 'figure grade__pct' }, `${Math.round(s.progress * 100)} %`) : null),
+      ProgressBar({ value: s.next ? s.progress : 1, label: t('rank.progress') }),
+      s.next
+        ? h('a', { class: 'grade__next', href: '#/progress' },
+            h('span', null, t('rank.next'), ' ', h('strong', null, t(`ranks.${s.next.id}.name`))),
+            s.next.xp ? h('span', { class: 'grade__xp' }, `${fmt.integer(o.xp)} / ${fmt.integer(s.next.xp)} XP`) : null,
+            Icon('arrow'))
+        : h('p', { class: 'grade__next' }, t('rank.top')));
   }
 
   function statTiles(data) {
     const t = DT.i18n.t;
     const o = progression.overview(data);
-    const next = progression.rankStatus(data).next;
     const has = o.questions > 0;
-    return h('div', { class: 'span-7 grid-2 stagger' },
-      StatTile({
-        label: 'XP', icon: 'progress',
-        value: fmt.integer(o.xp), unit: next && next.xp ? `/ ${fmt.integer(next.xp)}` : 'XP',
-        hint: next && next.xp ? t('dashboard.xpHint') : t('dashboard.xpTotal'),
-      }),
+    return h('div', { class: 'kpis stagger' },
+      gradeTile(data, o),
       StatTile({
         label: t('stats.streak'), icon: 'flame',
         value: has ? fmt.integer(o.currentStreak) : null,
@@ -131,7 +176,7 @@
   function render({ data }) {
     return h('div', { class: 'view stack stack-5' },
       hero(data),
-      h('div', { class: 'grid' }, DT.components.RankPanel(data, { className: 'span-5' }), statTiles(data)),
+      statTiles(data),
       h('div', { class: 'grid' }, skills(data), dailyCard(data)),
       h('div', { class: 'grid' }, focus(data), recent(data)));
   }

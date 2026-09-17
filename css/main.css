@@ -3,10 +3,12 @@
    ========================================================================== */
 
 :root {
-  /* Surfaces — deep anthracite, warm undertone */
+  /* Surfaces — deep anthracite, warm undertone.
+     --surface is translucent so the golden suits of the background show between the panels;
+     over --bg it renders the same grey as the opaque colour it replaces. */
   --bg: #0d0d0e;
   --bg-sunken: #0a0a0b;
-  --surface: #151516;
+  --surface: rgba(24, 25, 24, 0.82);
   --surface-2: #1b1b1c;
   --surface-3: #232324;
 
@@ -20,6 +22,14 @@
   --text: #e4ddcd;
   --text-2: #a29d93;
   --text-3: #6d6a64;
+
+  /* Or vif — l'or des boutons et des chiffres clés (direction artistique du tableau de bord) */
+  --gold-hi: #f7e3ac;
+  --gold: #e3c57f;
+  --gold-mid: #d4ad57;
+  --gold-lo: #b8913f;
+  --gold-line: rgba(226, 197, 127, 0.34);
+  --gold-wash: rgba(226, 197, 127, 0.08);
 
   /* Accent — champagne bronze */
   --accent: #c2a27a;
@@ -205,7 +215,7 @@ a { color: inherit; text-decoration: none; }
   flex-direction: column;
   gap: var(--s-6);
   padding: var(--s-6) var(--s-4) var(--s-5);
-  background: var(--bg-sunken);
+  background: linear-gradient(180deg, rgba(10, 10, 11, 0.88), rgba(10, 10, 11, 0.7));
   border-right: 1px solid var(--line);
   overflow-y: auto;
   scrollbar-width: none;

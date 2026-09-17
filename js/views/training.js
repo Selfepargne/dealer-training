@@ -5,7 +5,7 @@
   const fmt = DT.core.format;
   const progression = DT.core.progression;
   const { MODULES, REFLEX } = DT.data.modules;
-  const { PageHeader, Badge, ModuleArt, Icon } = DT.components;
+  const { PageHeader, Badge, ModuleArt, ModulePhoto, Icon } = DT.components;
 
   function tile(m, data, wide = false) {
     const t = DT.i18n.t;
@@ -19,11 +19,13 @@
       foot = t('common.soon');
     }
 
+    // La photographie de la discipline quand elle existe, sinon la composition dessinée
+    const photo = ModulePhoto(m.id);
     return h('a', { class: `tile${wide ? ' tile--wide' : ''}${m.available ? '' : ' is-soon'}`, href: `#/training/${m.id}` },
-      h('div', { class: 'tile__art' },
+      h('div', { class: `tile__art${photo ? ' tile__art--photo' : ''}` },
         h('span', { class: 'tile__art-index', 'aria-hidden': 'true' }, m.index),
         m.available ? Badge(t('common.available'), 'accent') : Badge(t('common.soon')),
-        ModuleArt(m.id)),
+        photo || ModuleArt(m.id)),
       h('div', { class: 'tile__body' },
         h('span', { class: 'eyebrow' }, m.reflex.map((r) => t(`reflex.${r}`)).join(' · ')),
         h('h2', { class: 'tile__title' }, t(`modules.${m.id}.name`)),

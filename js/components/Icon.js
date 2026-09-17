@@ -23,6 +23,7 @@
     download: '<path d="M12 4v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/>',
     upload: '<path d="M12 15V4"/><path d="M7.5 8.5L12 4l4.5 4.5"/><path d="M5 19.5h14"/>',
     pause: '<path d="M9 6v12"/><path d="M15 6v12"/>',
+    play: '<path d="M9.5 6.7l8.4 5.3-8.4 5.3z" fill="currentColor" stroke="none"/>',
     close: '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
     flame: '<path d="M12 21c-3.6 0-6-2.4-6-5.6 0-3.4 3-5.2 3.4-8.9 2.4 1.5 3.4 3.6 3.2 5.4 1-.6 1.6-1.6 1.8-2.8 1.6 1.6 3.6 3.6 3.6 6.3 0 3.2-2.4 5.6-6 5.6z"/>',
   };

@@ -1,6 +1,6 @@
 /* Textes en français. Garder les mêmes clés que en.js. Vérifier : node tests/i18n.test.js */
 window.DT.translations.fr = {
-  app: { name: 'Dealer Training', academy: 'Académie' },
+  app: { name: 'Dealer Training', academy: 'Académie', motto: '« Maîtriser la table, maîtriser le jeu, maîtriser soi. »' },
 
   nav: {
     dashboard: 'Tableau de bord',

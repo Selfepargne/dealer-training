@@ -2,7 +2,7 @@
   'use strict';
 
   const { h, clear } = DT.core.dom;
-  const { Icon, Logo, ProgressBar, RankBadge } = DT.components;
+  const { Icon, Logo, ProgressBar, RankBadge, GoldenSuits } = DT.components;
   const { MODULES } = DT.data.modules;
 
   const NAV = [
@@ -15,7 +15,8 @@
 
   /**
    * Application frame: sidebar (desktop), icon rail (tablet), tab bar (mobile).
-   * Screens are drawn inside `main`.
+   * Screens are drawn inside `main`. Behind them, the signature of the application: a few golden suits,
+   * built once and never on an exercise screen (the level comes from the route, see GoldenSuits.levelFor).
    */
   function createShell(root) {
     const t = DT.i18n.t;
@@ -56,10 +57,11 @@
     const main = h('main', { class: 'main', id: 'main', tabindex: '-1' });
 
     clear(root);
-    root.append(sidebar, main, tabbar);
+    root.append(GoldenSuits(), sidebar, main, tabbar);
 
     function setActive(path) {
       const [, section, sub] = path.split('/');
+      root.dataset.decor = GoldenSuits.levelFor(path); // exercises: 'none', nothing runs
       const active = section === 'train' ? 'training' : section;
       root.classList.toggle('in-session', section === 'train'); // more room for the exercise on phones
       for (const link of root.querySelectorAll('[data-nav]')) {
