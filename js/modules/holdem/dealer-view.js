@@ -19,7 +19,7 @@
   // Pieces
   // ---------------------------------------------------------------------------
 
-  /** Side-on stacks of chips; the value is written under each stack while the colours are being learnt. */
+  /** Side-on stacks of chips; the value is written under each stack while the colours are being learnt ('always': small stacks too). */
   function stacks(list, { showValues = true, small = false } = {}) {
     return h('div', { class: `bet-stacks${small ? ' bet-stacks--small' : ''}` },
       list.map((s) =>
@@ -29,7 +29,7 @@
           'aria-label': t('chips.stack', { count: s.count, value: s.value }),
         },
         h('span', { class: 'pile__discs', 'aria-hidden': 'true' }, Array.from({ length: s.count }, () => h('span', { class: 'pile__disc' }))),
-        showValues && !small && h('span', { class: 'pile__value', 'aria-hidden': 'true' }, s.value))));
+        (showValues === 'always' || (showValues && !small)) && h('span', { class: 'pile__value', 'aria-hidden': 'true' }, s.value))));
   }
 
   /** Position on an ellipse around the centre of the table: CSS turns sin/cos into left/top with its own radii. */
@@ -79,15 +79,17 @@
   function cave(q, i) {
     const s = q.seats[i];
     if (s.behindStacks == null) return null;
+    // "How much is in the cave?": the amount is hidden (shown with the answer), the chip values are written instead.
+    const hidden = q.hideCave === i;
     return h('div', {
       class: `cave${s.behind ? '' : ' is-empty'}`,
       role: 'group',
-      'aria-label': t('dealer.caveOf', { player: playerName(i), amount: money(s.behind) }),
+      'aria-label': t('dealer.caveOf', { player: playerName(i), amount: hidden ? '?' : money(s.behind) }),
     },
     h('span', { class: 'cave__label', 'aria-hidden': 'true' }, t('dealer.cave')),
     h('span', { class: 'cave__chips', 'aria-hidden': 'true' },
-      s.behindStacks.length ? stacks(s.behindStacks, { small: true }) : h('span', { class: 'seat__empty' })),
-    h('span', { class: 'cave__amount num', 'aria-hidden': 'true' }, money(s.behind)));
+      s.behindStacks.length ? stacks(s.behindStacks, { small: true, showValues: hidden ? 'always' : false }) : h('span', { class: 'seat__empty' })),
+    h('span', { class: 'cave__amount num', 'aria-hidden': 'true', dataset: hidden ? { amount: money(s.behind) } : null }, hidden ? '?' : money(s.behind)));
   }
 
   /**
@@ -116,7 +118,7 @@
       parts.push(h('div', { class: 'dealer-deck' }, Card({ code: 'As', faceDown: true, size: 'sm' }), h('span', { class: 'felt__label' }, t('dealer.clockwise'))));
     }
     // Chips & bets: the stage of the hand explains where the blinds are (on the felt preflop, in the pot after).
-    if (q.kind === 'chips') parts.push(h('span', { class: 'felt__label felt__street' }, t(`dealer.streets.${q.street}`)));
+    if (q.kind === 'chips' || (q.kind === 'table' && q.situation === 'firstActive')) parts.push(h('span', { class: 'felt__label felt__street' }, t(`dealer.streets.${q.street}`)));
     if (q.potStacks && q.potStacks.length) {
       parts.push(h('div', { class: 'pot' },
         h('span', { class: 'felt__label' }, t('dealer.pot')),
@@ -145,12 +147,18 @@
       case 'action': return t(`dealer.actions.${id}`);
       case 'street': return t(`dealer.streets.${id}`);
       case 'betType': return t(`dealer.betTypes.${id}`);
+      case 'yesNo': return t(`dealer.answers.${q.situation}.${id}`);
       default: return id;
     }
   }
 
   function prompt(q) {
-    const vars = { player: q.target != null ? playerName(q.target) : '', chip: q.chip ? money(q.chip) : '' };
+    const vars = {
+      player: q.target != null ? playerName(q.target) : '',
+      chip: q.chip ? money(q.chip) : '',
+      n: q.nth || q.hands || '',
+      street: q.street ? t(`dealer.streets.${q.street}`) : '',
+    };
     return t(`dealer.prompts.${q.kind}.${q.situation}`, vars);
   }
 
@@ -168,7 +176,8 @@
           h('div', { class: 'place place--dealer on-ring', style: at(layout.dealer) }, h('span', { class: 'place__label' }, t('dealer.dealerSeat'))),
           q.kind === 'chips' && q.seats.map((s, i) => betSpot(q, i, 'on-felt', layout.seats[i])),
           q.seats.map((s, i) => seat(q, i, layout.seats[i])),
-          h('div', {
+          // "Where is the button?": hidden, the posted blinds give it away
+          !q.hideButton && h('div', {
             class: 'dealer-button on-rail',
             style: at(layout.button),
             role: 'img',
@@ -199,6 +208,7 @@
       const s = q.seats[Number(el.dataset.player)];
       el.querySelector('.seat__amount').textContent = money(s.chip || s.bet);
     });
+    stage.querySelectorAll('.cave__amount[data-amount]').forEach((el) => { el.textContent = el.dataset.amount; });
     const pot = stage.querySelector('.pot__amount');
     if (pot && q.pot) pot.textContent = money(q.pot);
   }
@@ -245,8 +255,48 @@
     return { headline: player, short: `${rule} ${detail}`, why };
   }
 
+  /** A raise reopens the action: the first player after the raiser who has not matched it. */
+  function explainReopened(q) {
+    const n = q.seats.length;
+    const active = q.seats.map((s, i) => (s.folded ? -1 : i)).filter((i) => i >= 0);
+    const turn = D.getNextAfter({ players: n, active, pending: q.pending }, q.lastAggressor);
+    const player = playerName(turn.seat);
+    const raiser = playerName(q.lastAggressor);
+    const amount = money(q.seats[q.lastAggressor].bet);
+    const folded = q.seats.map((s, i) => (s.folded ? i : -1)).filter((i) => i >= 0);
+    const next = turn.skipped.length ? t(turn.skipped.length > 1 ? 'dealer.turn.reopenedManyFolds' : 'dealer.turn.reopenedFolds', { player, folded: names(turn.skipped) }) : t('dealer.turn.reopenedNext', { player });
+    return {
+      headline: player,
+      short: `${t('dealer.turn.reopened', { raiser, amount })} ${next}`,
+      why: [
+        t('dealer.why.raiseTo', { amount, player: raiser }),
+        t('dealer.why.pending', { players: names(q.pending) }),
+        folded.length > 0 && t('dealer.why.foldedPlayers', { players: names(folded) }),
+        { result: t('dealer.why.answer', { answer: player }) },
+      ].filter(Boolean),
+    };
+  }
+
+  /** Showdown: the house rule of the table (js/data/house-rules.js), always named as a table rule, never as a universal one. */
+  function explainShowOrder(q) {
+    const player = playerName(q.answer);
+    const rule = q.showdownRule || D.showdownRule();
+    const aggressor = rule === 'lastAggressor' && q.lastAggressor != null;
+    return {
+      headline: player,
+      short: t(`dealer.short.flow.showOrder.${q.variant}`, { player }),
+      why: [
+        t('dealer.why.houseRule', { rule: t(`dealer.showdownRules.${rule}`) }),
+        aggressor && t('dealer.why.lastAggressor', { player: playerName(q.lastAggressor), action: t(`dealer.status.${q.seats[q.lastAggressor].status}`) }),
+        rule === 'lastAggressor' && !aggressor && t('dealer.why.allChecked'),
+        !aggressor && t('dealer.why.button', { player: playerName(q.button) }),
+        { result: t('dealer.why.answer', { answer: player }) },
+      ].filter(Boolean),
+    };
+  }
+
   function explainTable(q) {
-    if (q.situation === 'firstPreflop' || q.situation === 'firstPostflop') return explainTurn(q, []);
+    if (q.situation === 'firstPreflop' || q.situation === 'firstPostflop' || q.situation === 'firstActive') return explainTurn(q, []);
     const n = q.seats.length;
     const pos = D.positions(n, q.button);
     const hu = q.headsUp ? 'headsUp' : 'normal';
@@ -255,7 +305,13 @@
       t('dealer.why.button', { player: playerName(pos.button) }),
       t('dealer.why.blinds', { sb: playerName(pos.sb), bb: playerName(pos.bb) }),
     ];
-    if (['firstCard', 'lastCard', 'nextCard'].includes(q.situation)) why.push(t('dealer.why.dealOrder', { order: sequence(D.dealOrder(n, q.button)) }));
+    if (['firstCard', 'lastCard', 'nextCard', 'nthCard'].includes(q.situation)) why.push(t('dealer.why.dealOrder', { order: sequence(D.dealOrder(n, q.button)) }));
+    if (q.situation === 'nthCard') why.push(t('dealer.why.nthCard', { n: q.nth, player: playerName(q.answer), round: q.nth > n ? 2 : 1 }));
+    if (q.situation === 'buttonIn') {
+      const path = [q.button];
+      for (let k = 0; k < q.hands; k++) path.push(D.nextHand(n, path[path.length - 1]).button);
+      why.push(t('dealer.why.buttonPath', { path: sequence(path) }));
+    }
     if (['nextButton', 'nextSB', 'nextBB'].includes(q.situation)) {
       const next = D.nextHand(n, q.button);
       why.push(t('dealer.why.nextHand', { button: playerName(next.button), sb: playerName(next.sb), bb: playerName(next.bb) }));
@@ -272,6 +328,22 @@
       };
     }
     if (q.situation === 'whoActs') return explainTurn(q, q.acted);
+    if (q.situation === 'afterRaise') return explainReopened(q);
+    if (q.situation === 'showOrder') return explainShowOrder(q);
+    if (q.situation === 'roundOver') {
+      const action = t(`dealer.actions.${q.answer}`);
+      const short = q.answer === 'wait' ? t(`dealer.short.flow.wait.${q.variant}`, { player: playerName(q.next) })
+        : q.variant === 'checked' ? t('dealer.short.flow.checkedAround') : t('dealer.short.flow.collect');
+      return {
+        headline: action,
+        short,
+        why: [
+          t('dealer.why.roundRule'),
+          q.answer === 'wait' && t('dealer.why.stillToAct', { player: playerName(q.next) }),
+          { result: t('dealer.why.answer', { answer: action }) },
+        ].filter(Boolean),
+      };
+    }
     const key = q.answer === 'pushPot' ? `pushPot.${q.variant}` : q.answer;
     return {
       headline: t(`dealer.actions.${q.answer}`),
@@ -294,6 +366,24 @@
           short: t('dealer.short.chips.stack'),
           why: [stackLine(playerName(q.target), seatOf(q.target).betStacks), result],
         };
+      case 'cave':
+        return {
+          headline: answer,
+          short: t('dealer.short.chips.cave'),
+          why: [stackLine(t('dealer.cave'), seatOf(q.target).behindStacks), t('dealer.why.caveNotInPot'), result],
+        };
+      case 'caveAfter':
+      case 'canCall': {
+        const cave = money(seatOf(q.target).behind);
+        const lines = [
+          t('dealer.why.highest', { amount: money(q.highest.amount), player: playerName(q.highest.seat) }),
+          t('dealer.why.already', { amount: money(q.own), player: playerName(q.target) }),
+          t('dealer.why.toCallIs', { amount: money(q.toCall) }),
+          t('dealer.why.caveIs', { amount: cave }),
+        ];
+        if (q.situation === 'caveAfter') return { headline: answer, short: t('dealer.short.chips.caveAfter'), why: [...lines, { result: `${cave} − ${money(q.toCall)} = ${answer}` }] };
+        return { headline: answer, short: t(`dealer.short.chips.canCall.${q.answer}`), why: [...lines, result] };
+      }
       case 'pot':
         return { headline: answer, short: t('dealer.short.chips.stack'), why: [stackLine(t('dealer.pot'), q.potStacks), t('dealer.why.caveNotInPot'), result] };
       case 'toCall':

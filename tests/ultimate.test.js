@@ -3,7 +3,8 @@
 
   1. Rules, on hands written by hand: ANTE, PLAY, BLIND and TRIPS pay tables, dealer qualification, win / loss / tie, totals.
   2. The rules against an oracle written separately here, on thousands of random hands.
-  3. The generated questions of the four levels: situations, players, amounts, chips, cards, answers — no incoherent table.
+  3. The generated questions of the four levels: situations, players, amounts, chips, cards, answers — no incoherent table —
+     and a clear progression: each level asks what the previous levels never ask.
   4. Texts: every option and explanation, in French and English.
 */
 global.window = { DT: { translations: {}, core: {}, data: {}, components: {}, exercises: {}, views: {} } };
@@ -201,7 +202,9 @@ test('4 000 random hands: settle() matches the oracle, totals add up', () => {
 
 /** What a question asks, recomputed here from the table only. */
 function expectedAnswer(q) {
+  if (q.situation === 'tablePaid') return String(q.spots.reduce((sum, spot) => sum + spot.settlement.paid, 0));
   const s = q.spots[q.target].settlement;
+  const group = (outcome) => s.lines.filter((l) => l.outcome === outcome).map((l) => l.bet).join('+') || 'none';
   switch (q.situation) {
     case 'zone': return q.zone;
     case 'antePay': return String(s.byBet.ante.win);
@@ -209,10 +212,15 @@ function expectedAnswer(q) {
     case 'blindPay': return String(s.byBet.blind.win);
     case 'tripsPay': return String(s.byBet.trips.win);
     case 'paid': case 'chipsPay': return String(s.paid);
-    case 'receives': case 'push': case 'chipsReturn': return String(s.receives);
+    case 'receives': case 'chipsReturn': return String(s.receives);
     case 'anteOutcome': return s.byBet.ante.outcome;
     case 'blindOutcome': return s.byBet.blind.outcome;
-    case 'winningBets': return s.lines.filter((l) => l.outcome === 'paid').map((l) => l.bet).join('+') || 'none';
+    case 'tripsOutcome': return s.byBet.trips.outcome;
+    case 'winningBets': return group('paid');
+    case 'lostBets': return group('lost');
+    case 'returnedBets': return group('push');
+    case 'qualifies': return q.dealer.hand.category >= 1 ? 'yes' : 'no';
+    case 'returned': return String(s.returned);
     case 'settle': return s.lines.map((l) => `${l.bet}:${l.outcome}`).join(',');
     default: throw new Error(`unknown situation ${q.situation}`);
   }
@@ -220,23 +228,30 @@ function expectedAnswer(q) {
 
 const PER_STAGE = 250;
 const stats = {};
+const HIGH_ROWS = ['fullHouse', 'quads', 'straightFlush', 'royalFlush'];
 
 for (const skillId of U.SKILL_IDS) {
   test(`${skillId} (${byId[skillId].level}) — ${PER_STAGE * 3} coherent tables, 3 stages`, () => {
-    const st = (stats[skillId] = { plans: {}, situations: {}, blindRatios: new Set(), tripsRatios: new Set(), tripsWhileLosing: 0, players: new Set(), amounts: new Set() });
+    const st = (stats[skillId] = {
+      plans: {}, situations: {}, answers: {}, blindRatios: new Set(), tripsRatios: new Set(), tripsWhileLosing: 0, players: new Set(), amounts: new Set(),
+      questions: [],
+    });
     for (const stage of [1, 2, 3]) {
       const situations = new Set();
       for (let i = 0; i < PER_STAGE; i++) {
         const q = createQuestion(skillId, { stage });
         const where = `${skillId} stage ${stage} ${q.situation}`;
         situations.add(q.situation);
+        st.questions.push(q);
         st.plans[q.plan] = (st.plans[q.plan] || 0) + 1;
         st.situations[q.situation] = (st.situations[q.situation] || 0) + 1;
+        st.answers[`${q.situation}=${q.answer}`] = (st.answers[`${q.situation}=${q.answer}`] || 0) + 1;
 
         // Metadata and players
         equal([q.type, q.module, q.skill, q.level, q.kind, q.stage], ['holdem', 'holdem', skillId, byId[skillId].level, 'ultimate', stage], `${where}: metadata`);
         const [min, max] = U.PLAYERS[skillId][stage];
-        assert(q.spots.length >= min && q.spots.length <= max && q.target >= 0 && q.target < q.spots.length, `${where}: players`);
+        assert(q.spots.length >= min && q.spots.length <= max, `${where}: players`);
+        assert(q.situation === 'tablePaid' ? q.target == null : q.target >= 0 && q.target < q.spots.length, `${where}: target`);
         st.players.add(q.spots.length);
 
         // Cards: 5 on the board, 2 for the dealer and each player, all different, hands from the engine
@@ -251,8 +266,9 @@ for (const skillId of U.SKILL_IDS) {
           const b = spot.bets;
           // Bets of a real Ultimate layout
           assert(U.ANTES[skillId].includes(b.ante) && b.blind === b.ante, `${where}: ANTE = BLIND (${b.ante}/${b.blind})`);
-          assert(U.PLAY_MULTIPLES.includes(b.play / b.ante), `${where}: PLAY = 1 to 4 × ANTE (${b.play})`);
-          assert(b.trips >= 0 && (skillId !== 'ultimate_bets' || b.trips === 0), `${where}: TRIPS`);
+          assert((U.PLAY_SIZES[skillId] || U.PLAY_MULTIPLES).includes(b.play / b.ante), `${where}: PLAY size (${b.play})`);
+          assert(b.trips >= 0, `${where}: TRIPS`);
+          if (skillId === 'ultimate_basics') assert(!b.trips || (q.situation === 'zone' && k === q.target), `${where}: beginner TRIPS only in the zone question`);
           st.amounts.add(b.ante);
           // Chips on every bet: the right total, at most 4 piles, real denominations
           for (const bet of U.BETS) {
@@ -270,15 +286,18 @@ for (const skillId of U.SKILL_IDS) {
         });
 
         // Answer and options
-        const s = q.spots[q.target].settlement;
         equal(q.answer, expectedAnswer(q), `${where}: answer`);
         assert(q.options.includes(q.answer) && new Set(q.options).size === q.options.length, `${where}: options`);
-        assert(q.options.length === (q.optionKind === 'outcome' ? 3 : 4), `${where}: option count`);
+        assert(q.options.length === ({ outcome: 3, yesNo: 2 }[q.optionKind] || 4), `${where}: option count`);
+        if (q.situation === 'qualifies') assert(q.hideQualification, `${where}: the qualification badge is the answer: hidden`);
+        if (['returned', 'receives', 'tablePaid'].includes(q.situation)) assert(Number(q.answer) > 0, `${where}: something to hand back`);
         if (q.optionKind === 'amount' || q.optionKind === 'chips') assert(q.options.every((o) => /^\d+$/.test(o)), `${where}: amounts`);
         if (q.optionKind === 'chips') assert(Number(q.answer) > 0, `${where}: something to pay`);
         if (q.situation === 'zone') assert(q.spots[q.target].bets[q.zone] > 0, `${where}: the zone asked holds a bet`);
-        if (q.situation === 'tripsPay') assert(q.spots[q.target].bets.trips > 0, `${where}: a TRIPS bet`);
+        if (['tripsPay', 'tripsOutcome'].includes(q.situation)) assert(q.spots[q.target].bets.trips > 0, `${where}: a TRIPS bet`);
 
+        if (q.target == null) continue;
+        const s = q.spots[q.target].settlement;
         const blind = s.byBet.blind;
         if (blind.outcome === 'paid') st.blindRatios.add(U.ratioText(blind.ratio));
         if (s.byBet.trips && s.byBet.trips.outcome === 'paid') {
@@ -291,27 +310,50 @@ for (const skillId of U.SKILL_IDS) {
   });
 }
 
-test('Beginner: one player, simple amounts, round results — TRIPS only to be recognised', () => {
+/** Every question a level asks, all stages together. */
+const asks = (skillId) => new Set([1, 2, 3].flatMap((stage) => U.SITUATIONS[skillId][stage]));
+
+test('Four distinct levels: each one asks something the previous levels never ask', () => {
+  const [B, I, A, E] = U.SKILL_IDS.map(asks);
+  equal([...B].sort(), ['antePay', 'lostBets', 'paid', 'playPay', 'receives', 'returnedBets', 'winningBets', 'zone'], 'beginner: layout, 1:1, winning / lost / returned bets');
+  assert([...B].every((x) => !I.has(x)), 'beginner and intermediate share no question');
+  ['qualifies', 'anteOutcome', 'blindOutcome', 'tripsOutcome', 'blindPay', 'tripsPay', 'settle'].forEach((x) => assert(I.has(x) && !B.has(x), `intermediate introduces ${x}`));
+  ['paid', 'receives'].forEach((x) => assert(A.has(x) && !I.has(x), `advanced: total payout ${x}`));
+  ['chipsPay', 'chipsReturn', 'tablePaid'].forEach((x) => assert(E.has(x) && ![B, I, A].some((level) => level.has(x)), `expert introduces ${x}`));
+  assert(!E.has('settle') && !E.has('blindPay') && !E.has('tripsPay'), 'expert does not repeat the bet-by-bet questions');
+});
+
+test('Beginner: the dealer always qualifies, no straight, no pay table, very simple amounts, one player', () => {
   const st = stats.ultimate_basics;
   equal([...st.players], [1], 'one player');
-  assert([...st.amounts].every((a) => [5, 10, 25].includes(a)), 'simple amounts');
-  assert(st.blindRatios.size <= 1 && [...st.blindRatios].every((r) => r === '1:1'), `BLIND only 1:1: ${[...st.blindRatios]}`);
-  for (let i = 0; i < 200; i++) {
-    const q = createQuestion('ultimate_basics', { stage: 1 + (i % 3) });
-    if (q.situation !== 'zone') assert(!q.spots[0].bets.trips, 'TRIPS only in the zone questions');
-  }
+  equal([...st.amounts].sort((a, b) => a - b), [5, 10], 'ANTE 5 or 10');
+  equal(st.blindRatios.size + st.tripsRatios.size, 0, 'no BLIND nor TRIPS payout');
+  st.questions.forEach((q) => {
+    const s = q.spots[0].settlement;
+    assert(s.qualifies, 'the dealer always qualifies');
+    assert(s.result === 'tie' || ['pair', 'twoPair'].includes(s.type), `a simple hand: ${s.type}`);
+    assert(!q.paytable, 'no pay table');
+  });
+  ['winningBets=ante+play', 'lostBets=ante+blind+play', 'returnedBets=blind', 'returnedBets=ante+blind+play'].forEach((k) => assert(st.answers[k] > 3, `answer seen: ${k}`));
 });
 
-test('Intermediate: qualified / not qualified, win / loss / tie, BLIND pushed below a straight, several players', () => {
+test('Intermediate: qualification, every result, first BLIND and TRIPS payouts only', () => {
   const st = stats.ultimate_bets;
   ['winQualified', 'winNotQualified', 'loseQualified', 'loseNotQualified', 'tie'].forEach((p) => assert(st.plans[p] > 10, `${p}: ${st.plans[p]}`));
-  assert(st.players.has(1) && st.players.has(3), `players ${[...st.players]}`);
-  assert([...st.blindRatios].every((r) => r === '1:1'), 'no pay table yet');
+  ['qualifies=yes', 'qualifies=no', 'tripsOutcome=paid', 'tripsOutcome=lost', 'blindOutcome=push', 'anteOutcome=push'].forEach((k) => assert(st.answers[k] > 3, `answer seen: ${k}`));
+  const taught = U.TAUGHT_TYPES.ultimate_bets;
+  st.questions.forEach((q) => {
+    const s = q.spots[q.target].settlement;
+    if (q.situation === 'blindPay' && s.byBet.blind.outcome === 'paid') assert(taught.blind.includes(s.type), `BLIND taught rows: ${s.type}`);
+    if (['tripsPay', 'tripsOutcome'].includes(q.situation) && s.byBet.trips.outcome === 'paid') assert(taught.trips.includes(s.type), `TRIPS taught rows: ${s.type}`);
+    if (q.paytable) equal(q.paytable, taught, 'the pay table shows the taught rows only');
+  });
+  equal([...st.blindRatios].filter((r) => !['1:1', '3:2'].includes(r)), [], 'BLIND: straight and flush');
+  assert(st.questions.some((q) => q.paytable) && st.questions.some((q) => q.stage === 3 && !q.paytable), 'pay table shown at stage 2, then hidden');
 });
 
-test('Advanced: every BLIND and TRIPS ratio appears, TRIPS paid while the player loses', () => {
+test('Advanced: full pay tables, the rows not taught before, several winning bets, the total', () => {
   const st = stats.ultimate_payouts;
-  // A longer run for the rarest hands
   for (let i = 0; i < 1500; i++) {
     const q = createQuestion('ultimate_payouts', { stage: 1 });
     const s = q.spots[q.target].settlement;
@@ -321,13 +363,21 @@ test('Advanced: every BLIND and TRIPS ratio appears, TRIPS paid while the player
   equal([...st.blindRatios].sort(), ['1:1', '3:2', '3:1', '10:1', '50:1', '500:1'].sort(), 'BLIND ratios');
   equal([...st.tripsRatios].sort(), ['3:1', '4:1', '7:1', '8:1', '30:1', '40:1', '50:1'].sort(), 'TRIPS ratios');
   assert(st.tripsWhileLosing > 5, `TRIPS paid on a lost hand: ${st.tripsWhileLosing}`);
+  const payQuestions = st.questions.filter((q) => ['blindPay', 'tripsPay'].includes(q.situation));
+  const high = payQuestions.filter((q) => HIGH_ROWS.includes(q.spots[q.target].settlement.type)).length;
+  assert(high > payQuestions.length * 0.4, `full house and above come often: ${high} / ${payQuestions.length}`);
+  const paid = st.questions.filter((q) => q.situation === 'paid');
+  const several = paid.filter((q) => q.spots[q.target].settlement.lines.filter((l) => l.outcome === 'paid').length >= 3).length;
+  assert(several > paid.length * 0.5, `several winning bets: ${several} / ${paid.length}`);
+  assert(st.questions.filter((q) => q.stage < 3).every((q) => q.paytable === U.TAUGHT_TYPES.ultimate_payouts), 'full pay tables at stages 1 and 2');
 });
 
-test('Expert: up to 3 players, less round amounts, payments in chips', () => {
+test('Expert: 2 to 3 players, the table total, payment and hand-back in chips, less round amounts', () => {
   const st = stats.ultimate_settlement;
-  assert(st.players.has(3), 'three players');
+  equal([...st.players].sort(), [2, 3], 'two or three players');
   assert([...st.amounts].some((a) => a % 10 !== 0), `less round amounts: ${[...st.amounts]}`);
-  assert(st.situations.chipsPay > 50 && st.situations.chipsReturn > 50, 'chips questions');
+  assert(st.situations.chipsPay > 50 && st.situations.chipsReturn > 50 && st.situations.tablePaid > 100, 'chips and table questions');
+  assert(st.questions.every((q) => !q.paytable), 'no pay table');
 });
 
 test('Target time and "hard" bonus follow the level; the table size setting does not apply', () => {

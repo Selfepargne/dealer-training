@@ -20,7 +20,7 @@ require('../js/modules/holdem/skills.js');
 
 const P = window.DT.poker;
 const { SKILLS } = window.DT.data.holdemSkills;
-const { createQuestion, firstDifference, COMPARISON_SOURCES } = window.DT.holdemSkills;
+const { createQuestion, firstDifference, COMPARISON_SOURCES, RECOGNITION_TYPES } = window.DT.holdemSkills;
 const DEALER_KINDS = ['table', 'flow', 'chips'];
 
 const PER_SKILL = 500;
@@ -29,19 +29,56 @@ function test(name, fn) {
   try { fn(); results.push({ name, ok: true }); } catch (e) { results.push({ name, ok: false, error: e.message }); }
 }
 function assert(cond, msg) { if (!cond) throw new Error(msg); }
+function equal(a, b, msg) { assert(JSON.stringify(a) === JSON.stringify(b), `${msg}: expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); }
 
 const cat = (h) => P.CATEGORIES[h.category];
 const show = (q) => `board ${q.board.join(' ')} | ${q.players.map((p) => p.cards.join(' ')).join(' / ')}`;
 const boardCat = (q) => cat(P.evaluate5(q.board));
 const playsBoard = (h, board) => h.cards.every((c) => board.includes(c));
 
+/** The 21 five-card hands of seven cards, written here independently of skills.js. */
+function fivesOf(seven) {
+  const out = [];
+  for (let a = 0; a < 7; a++) for (let b = a + 1; b < 7; b++) out.push(seven.filter((_, k) => k !== a && k !== b));
+  return out;
+}
+
+/** Recognition questions, checked against the engine for each family. */
+function recognitionOk(q) {
+  const hole = q.players[0].cards;
+  const seven = hole.concat(q.board);
+  const best = P.bestHand(seven);
+  if (q.kind !== 'recognition' || !RECOGNITION_TYPES[q.stage].includes(q.situation)) return false;
+  const unique = q.options.includes(q.answer) && new Set(q.options).size === q.options.length;
+  switch (q.situation) {
+    case 'bestHand':
+      return unique && q.options.length === 4 && q.answer === cat(best);
+    case 'bestFive': {
+      const five = q.answer.split(' ');
+      return unique && q.options.length === 4 && five.every((c) => seven.includes(c)) && new Set(five).size === 5
+        && P.compare(P.evaluate5(five), best) === 0
+        && q.options.filter((o) => o !== q.answer).every((o) => P.compare(P.evaluate5(o.split(' ')), best) < 0);
+    }
+    case 'holeCards': {
+      const counts = new Set(fivesOf(seven).filter((f) => P.compare(P.evaluate5(f), best) === 0).map((f) => f.filter((c) => hole.includes(c)).length));
+      return unique && counts.size === 1 && String([...counts][0]) === q.answer && q.options.join() === '0,1,2';
+    }
+    default:
+      return false;
+  }
+}
+
 // What each skill must look like, written from the engine's point of view.
 const EXPECT = {
-  hand_recognition: (q) => q.kind === 'recognition' && q.answer === cat(P.bestHand(q.players[0].cards.concat(q.board)))
-    && q.options.length === 4 && q.options.includes(q.answer) && new Set(q.options).size === 4,
+  hand_recognition: (q) => recognitionOk(q),
   // Beginner comparison: each question must match the situation it was built from (the former beginner skills).
   hand_comparison: (q, hands) => COMPARISON_SOURCES[q.stage].includes(q.situation) && EXPECT[q.situation](q, hands),
   simple_winner: (q, [a, b]) => !q.split && Math.abs(a.category - b.category) >= 2,
+  pair_vs_high: (q, [a, b]) => !q.split && [cat(a), cat(b)].sort().join() === 'highCard,pair',
+  different_types: (q, [a, b]) => !q.split && Math.abs(a.category - b.category) === 1 && Math.min(a.category, b.category) >= 1,
+  board_split: (q, hands) => q.split && boardCat(q) === 'straight' && hands.every((h) => playsBoard(h, q.board)),
+  two_pair_kicker: (q, [a, b]) => !q.split && cat(a) === 'twoPair' && cat(b) === 'twoPair' && a.values[0] === b.values[0] && a.values[1] === b.values[1] && a.values[2] !== b.values[2],
+  trap: (q, [a, b]) => !q.split && Math.abs(a.category - b.category) === 1 && Math.min(a.category, b.category) >= 2,
   pair_vs_pair: (q, [a, b]) => cat(a) === 'pair' && cat(b) === 'pair' && a.values[0] !== b.values[0],
   two_pair: (q, [a, b]) => cat(a) === 'twoPair' && cat(b) === 'twoPair' && (a.values[0] !== b.values[0] || a.values[1] !== b.values[1]),
   trips: (q, [a, b]) => cat(a) === 'trips' && cat(b) === 'trips' && a.values[0] !== b.values[0],
@@ -166,7 +203,7 @@ for (const skill of SKILLS) {
 
 test('Hand recognition covers all 9 hand types', () => {
   const found = new Set();
-  for (let i = 0; i < 600; i++) found.add(createQuestion('hand_recognition').answer);
+  for (let i = 0; i < 600; i++) found.add(cat(createQuestion('hand_recognition', { stage: 2 }).players[0].hand));
   assert(found.size === 9, `only ${[...found].join(', ')}`);
 });
 
@@ -181,9 +218,9 @@ test('Split pots appear where they should, and never where they should not', () 
 
 test('Hand comparison: progressive stages, every former beginner situation still generated', () => {
   const EXPECTED = {
-    1: ['simple_winner', 'pair_vs_pair'],
-    2: ['pair_vs_pair', 'two_pair', 'trips', 'kicker'],
-    3: ['two_pair', 'trips', 'kicker', 'board_pair', 'board_plays'],
+    1: ['pair_vs_high', 'simple_winner', 'pair_vs_pair'],
+    2: ['pair_vs_pair', 'two_pair', 'trips', 'different_types', 'board_split'],
+    3: ['kicker', 'two_pair_kicker', 'trips', 'board_pair', 'board_plays', 'trap'],
   };
   for (const stage of [1, 2, 3]) {
     const seen = {};
@@ -192,11 +229,13 @@ test('Hand comparison: progressive stages, every former beginner situation still
       const q = createQuestion('hand_comparison', { players: 2 + (i % 2), stage });
       seen[q.situation] = (seen[q.situation] || 0) + 1;
       if (q.split) splits++;
+      if (q.split) assert(stage > 1 && q.situation !== 'pair_vs_pair', `stage ${stage}: unexpected split (${q.situation})`);
+      if (stage === 2 && q.split) assert(q.situation === 'board_split', 'stage 2: only the simple tie is split');
     }
     assert(JSON.stringify(Object.keys(seen).sort()) === JSON.stringify(EXPECTED[stage].slice().sort()), `stage ${stage}: ${Object.keys(seen)}`);
     Object.entries(seen).forEach(([id, n]) => assert(n > 400 / EXPECTED[stage].length / 2, `stage ${stage}: ${id} under-represented (${n})`));
-    if (stage < 3) assert(splits === 0, `stage ${stage}: no split expected`);
-    else assert(splits > 0, 'stage 3: the shared board brings split pots');
+    if (stage === 1) assert(splits === 0, 'stage 1: no split');
+    else assert(splits > 0, `stage ${stage}: split pots appear`);
   }
 });
 
@@ -204,9 +243,36 @@ test('Hand recognition: the same hand type never comes back twice in a row', () 
   let previous = null;
   for (let i = 0; i < 300; i++) {
     const q = createQuestion('hand_recognition', { stage: 1 + (i % 3) });
-    assert(q.answer !== previous, `${q.answer} twice in a row`);
-    previous = q.answer;
+    const type = cat(q.players[0].hand);
+    assert(type !== previous, `${type} twice in a row`);
+    previous = type;
   }
+});
+
+test('Hand recognition: three stages — a clear hand, then the five cards and hole cards, then misleading hands', () => {
+  const seen = { 1: {}, 2: {}, 3: {} };
+  for (const stage of [1, 2, 3]) {
+    for (let i = 0; i < 600; i++) {
+      const q = createQuestion('hand_recognition', { stage });
+      const seven = q.players[0].cards.concat(q.board);
+      const best = P.bestHand(seven);
+      const key = q.situation === 'holeCards' ? `holeCards:${q.answer}` : q.situation;
+      seen[stage][key] = (seen[stage][key] || 0) + 1;
+      if (stage === 1) {
+        assert(q.situation === 'bestHand' && cat(best) !== 'highCard', 'stage 1: name a made hand');
+        assert(!q.decoys.length, `stage 1: nothing misleading (${q.decoys})`);
+      }
+      if (stage === 3 && q.situation === 'bestHand') assert(q.decoys.length > 0, 'stage 3: something misleading');
+      if (stage === 3 && q.situation === 'holeCards') {
+        const boardOnly = P.evaluate5(q.board);
+        assert(q.answer === '0' || (q.answer === '1' && boardOnly.category < best.category), 'stage 3: the board plays, or one hole card changes the hand');
+      }
+    }
+  }
+  equal(Object.keys(seen[1]), ['bestHand'], 'stage 1');
+  for (const stage of [2, 3]) ['bestHand', 'bestFive'].forEach((s) => assert(seen[stage][s] > 100, `stage ${stage}: ${s} ${seen[stage][s]}`));
+  ['holeCards:1', 'holeCards:2'].forEach((k) => assert(seen[2][k] > 5, `stage 2: ${k}`));
+  ['holeCards:0', 'holeCards:1'].forEach((k) => assert(seen[3][k] > 30, `stage 3: ${k}`));
 });
 
 test('Every seat can win: the winner is not always Player 1 or 2', () => {

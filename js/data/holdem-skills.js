@@ -5,7 +5,8 @@
   level      — beginner · intermediate · advanced · expert
   difficulty — position in the path (1 = easiest)
   targetMs   — target response time; used for "fast" answers, Speed mode and mastery
-  players    — optional [min, max] table size when the table setting is "Auto" (default: by level)
+  players    — optional [min, max] table size when the table setting is "Auto" (default: by level),
+               or one range per stage of the skill: { 1: [min, max], 2: …, 3: … }
   Ultimate Texas Hold'em skills (ultimate_*) settle the bets of an Ultimate table: see js/modules/holdem/ultimate.js.
 
   A skill is MASTERED when all three conditions are met (see MASTERY below).
@@ -17,7 +18,7 @@
   const SKILLS = [
     // Beginner — the dealer's basics: read hands, run the table, handle the chips
     { id: 'hand_recognition', level: 'beginner', difficulty: 1, targetMs: 3000 },
-    { id: 'hand_comparison', level: 'beginner', difficulty: 2, targetMs: 4000, players: [2, 3] },
+    { id: 'hand_comparison', level: 'beginner', difficulty: 2, targetMs: 4000, players: { 1: [2, 2], 2: [2, 3], 3: [3, 3] } },
     { id: 'table_setup', level: 'beginner', difficulty: 3, targetMs: 4000, players: [2, 6] },
     { id: 'hand_flow', level: 'beginner', difficulty: 4, targetMs: 4500, players: [2, 6] },
     { id: 'chips_bets', level: 'beginner', difficulty: 5, targetMs: 6000, players: [2, 6] },

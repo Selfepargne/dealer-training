@@ -35,7 +35,8 @@ js/data/modules.js         modules, temps cibles, paliers Débutant → Expert
 js/data/ranks.js           les 18 grades et leurs conditions
 js/data/achievements.js    les badges
 js/data/challenges.js      défi du jour (10 questions, 60 s, +50 XP)
-js/data/holdem-skills.js   parcours Hold'em : 16 compétences, temps cibles, règle de maîtrise
+js/data/holdem-skills.js   parcours Hold'em : 20 compétences, temps cibles, règle de maîtrise
+js/data/house-rules.js     règles maison qui varient selon les casinos (ordre d'abattage)
 js/data/blackjack-skills.js parcours Blackjack : 18 compétences, erreurs typiques, phases A/B/C
 js/core/progression.js     règles d'XP, passage de grade, axes de travail
 js/core/state.js           données enregistrées
@@ -54,6 +55,7 @@ js/components/             éléments réutilisés (carte, jeton, badge de grade
 - **Le nombre de questions par session** : `SESSION_LENGTH` dans `js/core/progression.js`.
 - **Le temps cible d'une compétence ou la règle de maîtrise** : `js/data/holdem-skills.js` ou `js/data/blackjack-skills.js`.
 - **Taille de table Hold'em** : choix « Auto / 2–6 » sur l'écran de départ ; en Auto, la table grandit avec le niveau (`AUTO_PLAYERS` dans `js/modules/holdem/holdem.js`). Le temps cible augmente de 0,7 s par joueur au-delà de 2.
+- **Règle d'abattage (qui montre en premier)** : `showdownOrder` dans `js/data/house-rules.js` — `'lastAggressor'` (par défaut : dernier à miser ou relancer sur la river, sinon premier joueur actif à gauche du bouton) ou `'leftOfButton'` (toujours le premier joueur actif à gauche du bouton). Ce n'est pas une règle universelle : questions et explications la présentent comme la règle de la table.
 - **Ouvrir la phase B ou C du Blackjack** (une fois ses générateurs écrits) : `AVAILABLE_PHASES` dans `js/data/blackjack-skills.js`.
 
 ## Les 4 types de session (Pratique ou Vitesse)

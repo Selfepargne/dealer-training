@@ -83,6 +83,52 @@
     };
   }
 
+  /**
+   * WHO STILL HAS TO ACT during a betting round: the active players (not all-in) who have not acted on this street,
+   * or who have less in front than the highest bet — a bet or a raise reopens the action for them.
+   * Preflop the big blind has not acted until it speaks, even when nobody raised (its option).
+   * @param {{ active: number[], acted: number[], bets: number[], allIn?: number[] }} round
+   */
+  function pendingPlayers({ active, acted, bets, allIn = [] }) {
+    const highest = Math.max(0, ...active.map((i) => bets[i]));
+    return active.filter((i) => !allIn.includes(i) && (!acted.includes(i) || bets[i] < highest));
+  }
+
+  /** A betting round is over when nobody still has to act. */
+  const roundComplete = (round) => pendingPlayers(round).length === 0;
+
+  /**
+   * The player to act after `last` has acted: clockwise from `last`, the first player who still has to act.
+   * It is also the first pending player clockwise after the last bet or raise (every player in between has answered it).
+   * @param {{ players: number, active: number[], pending: number[] }} state
+   * @returns {{ seat: number|null, skipped: number[] }}  skipped: folded seats passed over
+   */
+  function getNextAfter(state, last) {
+    const skipped = [];
+    for (const seat of clockwise(state.players, (last + 1) % state.players)) {
+      if (!state.active.includes(seat)) { skipped.push(seat); continue; }
+      if (state.pending.includes(seat)) return { seat, skipped };
+    }
+    return { seat: null, skipped };
+  }
+
+  /**
+   * SHOWDOWN: who shows first. This is a HOUSE RULE, not a universal rule: it is set in js/data/house-rules.js.
+   *   'lastAggressor' (default) — the last player who bet or raised on the river; if nobody bet, the first active player
+   *                               after the button (the order of action of the river)
+   *   'leftOfButton'            — always the first active player after the button
+   * Assumptions: the river betting round is over; no all-in player, no side pot.
+   */
+  const SHOWDOWN_ORDERS = ['lastAggressor', 'leftOfButton'];
+  function showdownRule() {
+    const rule = DT.data && DT.data.houseRules && DT.data.houseRules.showdownOrder;
+    return SHOWDOWN_ORDERS.includes(rule) ? rule : 'lastAggressor';
+  }
+  function showdownFirst({ players, button, active, lastAggressor = null }, rule = showdownRule()) {
+    if (rule === 'lastAggressor' && lastAggressor != null && active.includes(lastAggressor)) return lastAggressor;
+    return getFirstToAct({ players, button, active }, 'river').seat;
+  }
+
   /** Order in which seats receive their cards: the button always gets the last card. */
   const dealOrder = (n, button) => clockwise(n, positions(n, button).firstCard);
 
@@ -159,7 +205,7 @@
 
   const STREETS = ['preflop', 'flop', 'turn', 'river'];
   const BOARD_COUNT = { preflop: 0, flop: 3, turn: 4, river: 5 };
-  const ACTIONS = ['collect', 'dealFlop', 'dealTurn', 'dealRiver', 'showdown', 'announce', 'pushPot'];
+  const ACTIONS = ['wait', 'collect', 'dealFlop', 'dealTurn', 'dealRiver', 'showdown', 'announce', 'pushPot', 'splitPot'];
   const BET_TYPES = ['bet', 'call', 'raise', 'allIn'];
 
   const blindsFor = (stage, random) => pick(stage === 1 ? BLINDS.slice(0, 2) : BLINDS, random);
@@ -225,10 +271,15 @@
   // 2. Generators — table setup
   // ---------------------------------------------------------------------------
 
+  /**
+   * Stage 1 — read a table at rest: button, blinds, dealing (first, last, next card).
+   * Stage 2 — the order of action at the start of a hand, the next hand, the n-th card dealt.
+   * Stage 3 — hands in progress on every street with folded players, the button several hands later.
+   */
   const TABLE_TYPES = {
-    1: ['sb', 'bb', 'firstCard', 'nextButton', 'nextCard'],
-    2: ['sb', 'bb', 'firstCard', 'lastCard', 'nextCard', 'firstPreflop', 'firstPostflop', 'nextButton'],
-    3: ['sb', 'bb', 'firstCard', 'lastCard', 'firstPreflop', 'firstPostflop', 'nextButton', 'nextSB', 'nextBB'],
+    1: ['button', 'sb', 'bb', 'firstCard', 'lastCard', 'nextCard'],
+    2: ['firstPreflop', 'firstPostflop', 'nextButton', 'nextSB', 'nextBB', 'nthCard'],
+    3: ['firstActive', 'firstActive', 'firstActive', 'buttonIn', 'nextSB', 'nextBB', 'nthCard'],
   };
 
   function tableQuestion(stage, n, random) {
@@ -238,52 +289,51 @@
     const pos = positions(n, button);
     const next = nextHand(n, button);
     const order = dealOrder(n, button);
-    let target = null;
-    const answer = {
+    const q = { kind: 'table', situation: type, headsUp: n === 2, button, street: null, target: null };
+    let answer = {
+      button: () => button,
       sb: () => pos.sb,
       bb: () => pos.bb,
       firstCard: () => pos.firstCard,
       lastCard: () => order[n - 1],
-      nextCard: () => { const k = int(0, n - 2); target = order[k]; return order[k + 1]; },
+      nextCard: () => { const k = int(0, n - 2); q.target = order[k]; return order[k + 1]; },
+      // The n-th card of the deal: one card at a time, two rounds, always in the same order
+      nthCard: () => { q.nth = int(2, 2 * n); return order[(q.nth - 1) % n]; },
       firstPreflop: () => null, // set below from the table
       firstPostflop: () => null,
+      firstActive: () => null,
       nextButton: () => next.button,
       nextSB: () => next.sb,
       nextBB: () => next.bb,
+      // A few hands later: the button moves one place per hand (a full round brings it back)
+      buttonIn: () => { q.hands = int(2, n); let b = button; for (let k = 0; k < q.hands; k++) b = nextHand(n, b).button; return b; },
     }[type]();
 
-    // Blind markers help at first; they are hidden when the question is about the blinds.
-    const asksBlinds = ['sb', 'bb', 'nextButton', 'nextSB', 'nextBB'].includes(type);
-    const showBlinds = !asksBlinds && (stage === 1 || (stage === 2 && random() < 0.5));
+    // Where is the button? It is hidden, the posted blinds give it away. Questions about the blinds hide the blind markers.
+    const asksBlinds = ['sb', 'bb', 'nextButton', 'nextSB', 'nextBB', 'buttonIn'].includes(type);
+    q.hideButton = type === 'button';
+    q.showBlinds = type === 'button' || (!asksBlinds && (stage === 1 || (stage === 2 && random() < 0.5)));
     const blinds = pick(BLINDS.slice(0, 2), random);
     const seats = range(n).map(() => ({ ...seatBase(), cards: null }));
-    let street = null;
-    let firstToAct = answer;
-    if (type === 'firstPreflop' || type === 'firstPostflop') {
-      // A hand in progress: the active players hold their cards; after the flop some players may have folded.
-      street = type === 'firstPreflop' ? 'preflop' : 'flop';
+    if (['firstPreflop', 'firstPostflop', 'firstActive'].includes(type)) {
+      // A hand in progress: the active players hold their cards. Stage 3: after the flop some players already folded.
+      q.street = type === 'firstPreflop' ? 'preflop' : type === 'firstPostflop' ? 'flop' : pick(STREETS, random);
       seats.forEach((s) => { s.cards = 'down'; });
-      if (street === 'flop' && stage > 1 && n > 2) {
-        const folds = random() < 0.6 ? clockwise(n, (button + 1) % n).slice(0, int(1, n - 2)) : P.shuffle(range(n), random).slice(0, int(0, n - 2));
+      if (type === 'firstActive' && q.street !== 'preflop' && n > 2) {
+        const folds = random() < 0.6 ? clockwise(n, (button + 1) % n).slice(0, int(1, n - 2)) : P.shuffle(range(n), random).slice(0, int(1, n - 2));
         folds.forEach((i) => { seats[i].cards = null; seats[i].folded = true; });
       }
       const active = range(n).filter((i) => !seats[i].folded);
-      firstToAct = getFirstToAct({ players: n, button, active }, street).seat;
+      answer = getFirstToAct({ players: n, button, active }, q.street).seat;
     }
     // Shown blinds are posted: their chips are in front of SB and BB (preflop only — after the flop they are in the pot).
-    if (showBlinds && street !== 'flop') { seats[pos.sb].bet = blinds.sb; seats[pos.bb].bet = blinds.bb; }
+    if (q.showBlinds && (!q.street || q.street === 'preflop')) { seats[pos.sb].bet = blinds.sb; seats[pos.bb].bet = blinds.bb; }
 
     return withStacks({
-      kind: 'table',
-      situation: type,
-      headsUp: n === 2,
-      button,
-      showBlinds,
+      ...q,
       blinds: { sb: blinds.sb, bb: blinds.bb },
       seats,
-      street,
-      target,
-      answer: String(firstToAct),
+      answer: String(answer),
       options: range(n).map(String),
       optionKind: 'player',
     }, blinds, random);
@@ -293,10 +343,15 @@
   // 2. Generators — flow of a hand
   // ---------------------------------------------------------------------------
 
+  /**
+   * Stage 1 — the street, what comes next after a complete round, whose turn at the start (no fold).
+   * Stage 2 — whose turn after checks, calls and bets; is the round over; earlier folds.
+   * Stage 3 — a raise reopens the action, round not over, who shows first, winner, pot pushed or split.
+   */
   const FLOW_TYPES = {
-    1: ['street', 'dealNext', 'dealNext', 'collect', 'collect'],
-    2: ['street', 'dealNext', 'collect', 'whoActs', 'whoActs', 'showdown', 'announce'],
-    3: ['dealNext', 'collect', 'whoActs', 'whoActs', 'whoActs', 'showdown', 'announce', 'pushPot'],
+    1: ['street', 'street', 'dealNext', 'collect', 'whoActs'],
+    2: ['whoActs', 'whoActs', 'roundOver', 'roundOver', 'dealNext', 'collect', 'showdown'],
+    3: ['afterRaise', 'afterRaise', 'whoActs', 'roundOver', 'showOrder', 'announce', 'pushPot', 'pushPot'],
   };
   const NEXT_DEAL = { preflop: 'dealFlop', flop: 'dealTurn', turn: 'dealRiver' };
 
@@ -314,6 +369,7 @@
 
     const fold = (i, status = 'fold') => { seats[i].cards = null; seats[i].folded = true; seats[i].status = status; };
     const inHand = () => range(n).filter((i) => seats[i].cards);
+    const asPlayer = () => { q.options = range(n).map(String); q.optionKind = 'player'; };
 
     /** Postflop, from stage 2: some players already folded on an earlier street (no cards, no status). */
     function earlierFolds(keep) {
@@ -327,9 +383,10 @@
       }
     }
 
-    /** A complete betting round among the players in the hand. `collected`: the bets are already in the pot. */
+    /** A complete betting round among the players in the hand. `collected`: the bets are already in the pot. Folds from stage 2. */
     function completeRound(street, collected) {
       const players = inHand();
+      const folds = stage > 1;
       if (street === 'preflop') {
         const raise = random() < 0.4 ? bb * int(2, 4) : 0;
         const amount = raise || bb;
@@ -337,7 +394,7 @@
         const raiser = raise ? order.find((i) => i !== pos.sb && i !== pos.bb) : null;
         order.forEach((i) => {
           const blind = i === pos.sb || i === pos.bb;
-          if (!blind && i !== raiser && random() < 0.3 && inHand().length > 2) return fold(i);
+          if (folds && !blind && i !== raiser && random() < 0.3 && inHand().length > 2) return fold(i);
           seats[i].bet = amount;
           seats[i].status = i === raiser ? 'raise' : i === pos.bb && !raise ? 'check' : 'call';
         });
@@ -348,7 +405,7 @@
         const bettor = pick(players, random);
         const amount = bb * int(1, 5);
         players.forEach((i) => {
-          if (i !== bettor && random() < 0.3 && inHand().length > 2) return fold(i);
+          if (folds && i !== bettor && random() < 0.3 && inHand().length > 2) return fold(i);
           seats[i].bet = amount;
           seats[i].status = i === bettor ? 'bet' : 'call';
         });
@@ -360,22 +417,63 @@
       return inHand().length >= 2;
     }
 
+    /**
+     * A betting round played action by action with the module rules (getFirstToAct, pendingPlayers, getNextAfter).
+     * Returns the table after every action. At most one raise. A player folds only with nothing new in front
+     * (a posted blind stays on the felt).
+     */
+    function simulateRound(street, { raise, folds }) {
+      const acted = [];
+      const snapshots = [];
+      let lastAggressor = null;
+      let raises = 0;
+      const posted = (i) => (street === 'preflop' ? (i === pos.sb ? sb : i === pos.bb ? bb : 0) : 0);
+      let current = getFirstToAct({ players: n, button, active: inHand() }, street).seat;
+      for (let guard = 0; current != null && guard < 4 * n; guard++) {
+        const i = current;
+        const s = seats[i];
+        const highest = Math.max(0, ...inHand().map((k) => seats[k].bet));
+        const canRaise = raise && raises === 0 && highest > 0;
+        const r = random();
+        if (s.bet === highest) {
+          if (highest === 0 && r < 0.45) { s.bet = bb * int(1, 4); s.status = 'bet'; lastAggressor = i; }
+          else if (canRaise && r < 0.35) { s.bet = highest * 2; s.status = 'raise'; raises++; lastAggressor = i; }
+          else s.status = 'check';
+        } else if (folds && inHand().length > 2 && s.bet === posted(i) && r < 0.25) fold(i);
+        else if (canRaise && r > 0.6) { s.bet = highest * 2; s.status = 'raise'; raises++; lastAggressor = i; }
+        else { s.bet = highest; s.status = 'call'; }
+        if (!acted.includes(i)) acted.push(i);
+        const active = inHand();
+        const round = { active, acted: acted.filter((k) => active.includes(k)), bets: seats.map((x) => x.bet) };
+        const pending = pendingPlayers(round);
+        snapshots.push({ seats: seats.map((x) => ({ ...x })), acted: round.acted, last: i, lastAggressor, raises, pending, players: active.length });
+        current = pending.length ? getNextAfter({ players: n, active, pending }, i).seat : null;
+      }
+      return snapshots;
+    }
+    const restore = (snapshot) => snapshot.seats.forEach((x, i) => Object.assign(seats[i], x));
+    const saved = () => seats.map((x) => ({ ...x }));
+
     const street = {
       street: () => pick(STREETS, random),
       dealNext: () => pick(['preflop', 'flop', 'turn'], random),
       collect: () => pick(STREETS, random),
-      whoActs: () => (stage === 2 ? pick(['preflop', 'flop'], random) : pick(STREETS, random)),
+      whoActs: () => (stage === 1 ? 'preflop' : stage === 2 ? pick(['preflop', 'flop'], random) : pick(STREETS, random)),
+      roundOver: () => pick(STREETS, random),
+      afterRaise: () => pick(['flop', 'turn', 'river'], random),
       showdown: () => 'river',
+      showOrder: () => 'river',
       announce: () => 'river',
       pushPot: () => pick(STREETS, random),
     }[type]();
     q.street = street;
     q.boardCount = BOARD_COUNT[street];
     if (street !== 'preflop') q.pot = bb * int(n, 4 * n);
+    const postBlinds = () => { if (street === 'preflop') { seats[pos.sb].bet = sb; seats[pos.bb].bet = bb; } };
 
     switch (type) {
       case 'street': {
-        if (street === 'preflop') { seats[pos.sb].bet = sb; seats[pos.bb].bet = bb; }
+        postBlinds();
         q.answer = street;
         q.options = STREETS.slice();
         q.optionKind = 'street';
@@ -391,6 +489,70 @@
         q.answer = type === 'dealNext' ? NEXT_DEAL[street] : type;
         break;
       }
+      case 'roundOver': {
+        // Is the betting round over? Over: collect the bets (or, if everybody checked, go straight on). Not over: wait.
+        if (street !== 'preflop') earlierFolds(2);
+        postBlinds();
+        const snapshots = simulateRound(street, { raise: stage === 3, folds: stage === 3 }).filter((s) => s.players >= 2);
+        const over = snapshots.filter((s) => !s.pending.length);
+        // Stage 3: every player spoke but a raise is still to be answered — the round only looks over.
+        const open = snapshots.filter((s) => s.pending.length && (stage < 3 || s.pending.every((k) => s.acted.includes(k))));
+        const chosen = pick(random() < 0.45 ? over : open, random);
+        if (!chosen) return null;
+        restore(chosen);
+        if (chosen.pending.length) {
+          q.answer = 'wait';
+          q.next = getNextAfter({ players: n, active: inHand(), pending: chosen.pending }, chosen.last).seat;
+          q.variant = chosen.acted.includes(q.next) ? 'reopened' : 'notActed';
+        } else if (seats.some((s) => s.bet > 0)) {
+          q.answer = 'collect';
+          q.variant = 'bets';
+        } else {
+          q.answer = street === 'river' ? 'showdown' : NEXT_DEAL[street];
+          q.variant = 'checked';
+        }
+        break;
+      }
+      case 'afterRaise': {
+        // A raise reopens the action: the players who only matched the earlier bet must speak again.
+        earlierFolds(2);
+        const start = saved();
+        let chosen = null;
+        for (let k = 0; k < 40 && !chosen; k++) {
+          start.forEach((x, i) => Object.assign(seats[i], x));
+          const snapshots = simulateRound(street, { raise: true, folds: true }).filter((s) => s.raises === 1 && s.pending.length && s.players >= 2);
+          const reopened = snapshots.filter((s) => s.pending.some((p) => s.acted.includes(p)));
+          chosen = pick(reopened.length && random() < 0.8 ? reopened : snapshots, random) || null;
+        }
+        if (!chosen) return null;
+        restore(chosen);
+        const state = { players: n, active: inHand(), pending: chosen.pending };
+        const nextSeat = getNextAfter(state, chosen.last).seat;
+        // Readable from the table: the first player after the raise who has not matched it.
+        if (getNextAfter(state, chosen.lastAggressor).seat !== nextSeat) return null;
+        Object.assign(q, { lastAggressor: chosen.lastAggressor, acted: chosen.acted, pending: chosen.pending, answer: String(nextSeat) });
+        asPlayer();
+        break;
+      }
+      case 'showOrder': {
+        // River over: who shows first? The house rule decides (js/data/house-rules.js).
+        earlierFolds(2);
+        const start = saved();
+        let chosen = null;
+        for (let k = 0; k < 40 && !chosen; k++) {
+          start.forEach((x, i) => Object.assign(seats[i], x));
+          const last = simulateRound('river', { raise: true, folds: true }).pop();
+          if (last && !last.pending.length && last.players >= 2 && (random() < 0.6 || last.lastAggressor == null)) chosen = last;
+        }
+        if (!chosen) return null;
+        restore(chosen);
+        q.lastAggressor = chosen.lastAggressor;
+        q.showdownRule = showdownRule();
+        q.variant = q.showdownRule === 'leftOfButton' ? 'leftOfButton' : chosen.lastAggressor == null ? 'checked' : 'aggressor';
+        q.answer = String(showdownFirst({ players: n, button, active: inHand(), lastAggressor: chosen.lastAggressor }, q.showdownRule));
+        asPlayer();
+        break;
+      }
       case 'announce': {
         earlierFolds(2);
         inHand().forEach((i) => { seats[i].cards = 'up'; });
@@ -400,13 +562,21 @@
       case 'pushPot': {
         if (street !== 'preflop') earlierFolds(2);
         if (street === 'river' && random() < 0.5) {
-          // Showdown done, the winner is announced.
+          // Showdown done, the winning hands are marked: one winner takes the pot, a tie splits it.
           const players = inHand();
+          if (random() < 0.4) {
+            // The board makes a straight: often every player plays the board
+            const used = new Set(seats.flatMap((s) => s.hole));
+            const low = int(2, 10);
+            const straight = [0, 1, 2, 3, 4].map((k) => pick(P.SUITS.split('').map((suit) => P.RANKS[low + k - 2] + suit).filter((c) => !used.has(c)), random));
+            if (straight.some((c) => !c)) return null;
+            board.splice(0, 5, ...P.shuffle(straight, random));
+          }
           const { winners } = P.showdown(board, players.map((i) => seats[i].hole));
-          if (winners.length > 1) return null;
           players.forEach((i) => { seats[i].cards = 'up'; });
-          seats[players[winners[0]]].marked = true;
-          q.variant = 'winner';
+          winners.forEach((w) => { seats[players[w]].marked = true; });
+          q.variant = winners.length > 1 ? 'split' : 'winner';
+          q.answer = winners.length > 1 ? 'splitPot' : 'pushPot';
         } else {
           // Everybody else folded.
           const players = inHand();
@@ -415,8 +585,8 @@
           players.forEach((i) => { if (i !== winner) fold(i); });
           if (street === 'preflop') q.pot = bb * int(3, 6) + sb + bb;
           q.variant = 'folds';
+          q.answer = 'pushPot';
         }
-        q.answer = 'pushPot';
         break;
       }
       case 'whoActs': {
@@ -424,16 +594,14 @@
         const order = actionOrder(n, button, street, inHand());
         const acted = int(0, order.length - 1);
         let highest = street === 'preflop' ? bb : 0;
-        if (street === 'preflop') {
-          seats[pos.sb].bet = sb;
-          seats[pos.bb].bet = bb;
-        }
+        postBlinds();
+        // Stage 1: calls and checks. Stage 2: a bet may open the round. Stage 3: raises and folds during the round.
         order.slice(0, acted).forEach((i) => {
           const blind = street === 'preflop' && (i === pos.sb || i === pos.bb);
           const roll = random();
           if (!blind && roll < 0.3 && stage === 3) return fold(i);
           if (highest === 0) {
-            if (stage === 3 && roll > 0.7) { highest = bb * int(1, 4); seats[i].bet = highest; seats[i].status = 'bet'; } else seats[i].status = 'check';
+            if (stage > 1 && roll > 0.7) { highest = bb * int(1, 4); seats[i].bet = highest; seats[i].status = 'bet'; } else seats[i].status = 'check';
           } else if (stage === 3 && roll > 0.85) {
             highest *= 2; seats[i].bet = highest; seats[i].status = 'raise';
           } else {
@@ -447,8 +615,7 @@
         const next = getNextToAct({ players: n, button, active: inHand() }, street, q.acted).seat;
         if (next !== order[acted]) return null;
         q.answer = String(next);
-        q.options = range(n).map(String);
-        q.optionKind = 'player';
+        asPlayer();
         break;
       }
       default:
@@ -466,10 +633,15 @@
   // 2. Generators — chips and bets
   // ---------------------------------------------------------------------------
 
+  /**
+   * Stage 1 — read amounts: a bet in front, a cave, the pot, the amount to call (no raise, no fold).
+   * Stage 2 — one step of calculation: to call, the cave after calling, can the player call, total engaged, pot after, bet or call or raise.
+   * Stage 3 — full table reading: raise size, all-in, every action type, change, pot after raises, chip values no longer written.
+   */
   const CHIP_TYPES = {
-    1: ['stack', 'stack', 'pot', 'toCall', 'toCall'],
-    2: ['stack', 'pot', 'toCall', 'raise', 'potAfter', 'allIn', 'action'],
-    3: ['committed', 'toCall', 'raise', 'potAfter', 'allIn', 'action', 'change', 'change'],
+    1: ['stack', 'cave', 'pot', 'toCall'],
+    2: ['toCall', 'caveAfter', 'canCall', 'committed', 'potAfter', 'action'],
+    3: ['raise', 'allIn', 'action', 'change', 'potAfter', 'toCall', 'committed'],
   };
 
   /**
@@ -484,7 +656,8 @@
   function chipsQuestion(stage, n, random) {
     const int = (min, max) => randomInt(min, max, random);
     const type = pick(CHIP_TYPES[stage], random);
-    const actionAnswer = type === 'action' ? pick(BET_TYPES, random) : null;
+    // Stage 2 reads bet / call / raise; the all-in comes at stage 3.
+    const actionAnswer = type === 'action' ? pick(stage === 2 ? BET_TYPES.filter((b) => b !== 'allIn') : BET_TYPES, random) : null;
     const button = int(0, n - 1);
     const blinds = blindsFor(stage, random);
     const { sb, bb } = blinds;
@@ -550,7 +723,7 @@
           if (street === 'flop' && highest === 0 && r < 0.35) act.bet(i, betSize());
           else if (raise && highest > 0 && r < 0.2) act.raise(i, raiseTo());
           else act.check(i);
-        } else if (inHand().length > 2 && r < 0.3) act.fold(i);
+        } else if (stage > 1 && inHand().length > 2 && r < 0.3) act.fold(i);
         else if (raise && r > 0.85) act.raise(i, raiseTo());
         else act.call(i);
       });
@@ -586,6 +759,30 @@
         order.slice(0, int(0, order.length - 1)).forEach(act.check);
         q.answer = q.pot;
         near = [q.pot + bb, q.pot - bb, q.pot + unit, q.pot - unit];
+        break;
+      }
+      case 'cave': {
+        // How much does the player still have? Read the chips of the cave (its amount is hidden for this player).
+        play(order.slice(0, int(0, order.length)));
+        q.target = pick(inHand(), random);
+        break;
+      }
+      case 'caveAfter':
+      case 'canCall': {
+        // Facing a bet: the cave after calling, or whether the cave covers the call.
+        const ti = int(first, order.length - 1);
+        upTo(ti, { raise: false });
+        const t = order[ti];
+        if (!seats[t].cards || seats[t].bet >= highest) return null;
+        q.target = t;
+        q.own = seats[t].bet;
+        q.highest = { seat: highestSeat, amount: highest };
+        q.toCall = highest - q.own;
+        if (type === 'canCall' && random() < 0.5) {
+          // Short: fewer chips in the cave than the amount to call (in chips of the table)
+          if (q.toCall <= unit) return null;
+          seats[t].start = seats[t].prior + q.own + unit * int(1, Math.floor((q.toCall - 1) / unit));
+        } else if (room(t) < q.toCall + unit) seats[t].start += q.toCall - room(t) + bb * int(1, 6);
         break;
       }
       case 'toCall': {
@@ -705,6 +902,22 @@
       s.behind = s.start - s.prior - engaged;
     }
 
+    // ---- Answers read from the caves ----
+    if (type === 'cave') {
+      q.answer = seats[q.target].behind;
+      q.hideCave = q.target;
+      near = [q.answer + bb, q.answer - bb, q.answer + unit, q.answer - unit, q.answer + seats[q.target].bet];
+    }
+    if (type === 'caveAfter') {
+      q.answer = seats[q.target].behind - q.toCall;
+      near = [seats[q.target].behind, q.answer - q.own, q.answer + q.own, q.answer - bb, q.answer + bb];
+    }
+    if (type === 'canCall') {
+      q.answer = seats[q.target].behind >= q.toCall ? 'yes' : 'no';
+      q.options = ['yes', 'no'];
+      q.optionKind = 'yesNo';
+    }
+
     if (q.optionKind === 'amount') {
       if (!(q.answer > 0)) return null;
       q.options = amountOptions(q.answer, near, unit, random);
@@ -715,7 +928,7 @@
 
   DT.holdemDealer = {
     // rules
-    positions, blindSeats, getFirstToAct, getNextToAct, dealOrder, actionOrder, nextHand, clockwise, tableLayout, BUTTON_BETWEEN, blindsShown,
+    positions, blindSeats, getFirstToAct, getNextToAct, pendingPlayers, roundComplete, getNextAfter, showdownFirst, showdownRule, SHOWDOWN_ORDERS, dealOrder, actionOrder, nextHand, clockwise, tableLayout, BUTTON_BETWEEN, blindsShown,
     CHIP_VALUES, MAX_PER_STACK, MAX_PILES_ON_FELT, BLINDS, toStacks, stacksTotal, toCall, raiseSize, potAfterCollect, change,
     // generators
     STREETS, BOARD_COUNT, ACTIONS, BET_TYPES, TABLE_TYPES, FLOW_TYPES, CHIP_TYPES,

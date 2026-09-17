@@ -63,20 +63,25 @@
       h('p', { class: 'uth-spot__total num', 'aria-live': 'polite' }));
   }
 
+  /** The dealer's hand. "Does the dealer qualify?": the hand name and the badge come with the answer. */
   function dealer(q) {
+    const hidden = q.hideQualification;
     return h('div', { class: 'uth-dealer' },
       h('span', { class: 'uth-dealer__label' }, t('ultimate.dealer')),
       h('div', { class: 'uth-hand' },
         h('div', { class: 'card-row' }, q.dealer.cards.map((code) => Card({ code, size: 'sm' }))),
-        h('span', { class: 'uth-hand__name' }, handName(q.dealer.hand))),
-      h('span', { class: `uth-tag ${q.qualifies ? 'uth-tag--qualified' : 'uth-tag--not-qualified'}` }, t(q.qualifies ? 'ultimate.qualified' : 'ultimate.notQualified')));
+        h('span', { class: 'uth-hand__name uth-dealer__hand' }, hidden ? '' : handName(q.dealer.hand))),
+      h('span', {
+        class: `uth-tag uth-dealer__qualify ${q.qualifies ? 'uth-tag--qualified' : 'uth-tag--not-qualified'}`,
+        hidden: hidden || null,
+      }, t(q.qualifies ? 'ultimate.qualified' : 'ultimate.notQualified')));
   }
 
-  /** The two pay tables, under the table while they are being learnt. */
-  function paytables() {
+  /** The pay tables under the table while they are being learnt: only the rows taught at this level. */
+  function paytables(rows) {
     const table = (name, pays) => h('div', { class: 'uth-paytable' },
       h('span', { class: 'uth-paytable__title' }, betName(name)),
-      h('dl', null, Object.entries(pays).map(([type, ratio]) => [
+      h('dl', null, Object.entries(pays).filter(([type]) => rows[name].includes(type)).map(([type, ratio]) => [
         h('dt', null, t(`ultimate.types.${type}`)),
         h('dd', { class: 'num' }, U.ratioText(ratio)),
       ])));
@@ -95,6 +100,7 @@
     switch (q.optionKind) {
       case 'bet': return betName(id);
       case 'outcome': return outcomeName(id);
+      case 'yesNo': return t(`ultimate.answers.${q.situation}.${id}`);
       case 'amount': return id === '0' ? t('ultimate.nothing') : money(id);
       case 'chips': return chipsText(Number(id));
       case 'settle': return id.split(',').map((part) => { const [bet, outcome] = part.split(':'); return `${betName(bet)} ${t(`ultimate.outcomesInline.${outcome}`)}`; }).join(' · ');
@@ -109,7 +115,7 @@
 
   function prompt(q) {
     const text = t(`ultimate.prompts.${q.situation}`);
-    return q.spots.length > 1 ? `${playerName(q.target)} · ${text}` : text;
+    return q.spots.length > 1 && q.target != null ? `${playerName(q.target)} · ${text}` : text;
   }
 
   function view(q) {
@@ -122,7 +128,7 @@
               h('span', { class: 'uth-dealer__label' }, t('holdem.board')),
               h('div', { class: 'card-row' }, q.board.map((code) => Card({ code, size: 'sm' }))))),
           h('div', { class: 'uth-spots' }, q.spots.map((s, i) => spot(q, i)))),
-        q.showPaytable && paytables()),
+        q.paytable && paytables(q.paytable)),
       prompt: prompt(q),
       options: q.options.map((id) => ({ id, label: optionLabel(q, id) })),
     };
@@ -131,6 +137,10 @@
   /** Every bet shows how it is settled: "+15 €", "Rendue", "Perdue"; each player shows what they pick up. */
   function reveal(q, stage) {
     stage.classList.add('is-revealed');
+    if (q.hideQualification) {
+      stage.querySelector('.uth-dealer__hand').textContent = handName(q.dealer.hand);
+      stage.querySelector('.uth-dealer__qualify').hidden = false;
+    }
     stage.querySelectorAll('.uth-zone').forEach((el) => {
       const i = Number(el.dataset.player);
       const line = q.spots[i].settlement.byBet[el.dataset.bet];
@@ -158,8 +168,22 @@
   }
 
   function explain(q) {
-    const s = q.spots[q.target].settlement;
     const headline = optionLabel(q, q.answer);
+    if (q.situation === 'tablePaid') {
+      // The whole table: each player's winnings, then the total the dealer pays
+      const paid = q.spots.map((spot) => spot.settlement.paid);
+      return {
+        headline,
+        short: t('ultimate.short.tablePaid'),
+        why: [
+          t(q.qualifies ? 'ultimate.why.qualified' : 'ultimate.why.notQualified', { hand: handName(q.dealer.hand) }),
+          ...q.spots.map((spot, i) => t('ultimate.why.playerPaid', { player: playerName(i), hand: handName(spot.hand), amount: money(spot.settlement.paid) })),
+          t('ultimate.why.tableTotal', { detail: paid.map(money).join(' + '), amount: headline }),
+          { result: t('dealer.why.answer', { answer: headline }) },
+        ],
+      };
+    }
+    const s = q.spots[q.target].settlement;
     const vars = { player: playerName(q.target) };
     const why = [];
 
@@ -173,14 +197,25 @@
 
     why.push(t(s.qualifies ? 'ultimate.why.qualified' : 'ultimate.why.notQualified', { hand: handName(q.dealer.hand) }));
     why.push(t(`ultimate.why.result.${s.result}`, { ...vars, hand: handName(q.spots[q.target].hand) }));
+    if (q.situation === 'qualifies') {
+      return {
+        headline,
+        short: t(`ultimate.short.qualifies.${q.answer}`),
+        why: [t(s.qualifies ? 'ultimate.why.qualified' : 'ultimate.why.notQualified', { hand: handName(q.dealer.hand) }), t('ultimate.why.qualifyRule'), { result: t('dealer.why.answer', { answer: headline }) }],
+      };
+    }
     const lines = q.situation === 'anteOutcome' ? [s.byBet.ante]
       : q.situation === 'blindOutcome' || q.situation === 'blindPay' ? [s.byBet.blind]
         : q.situation === 'antePay' ? [s.byBet.ante]
           : q.situation === 'playPay' ? [s.byBet.play]
-            : q.situation === 'tripsPay' ? [s.byBet.trips]
+            : q.situation === 'tripsPay' || q.situation === 'tripsOutcome' ? [s.byBet.trips]
               : s.lines;
     lines.forEach((line) => why.push(betLine(q, line)));
 
+    if (q.situation === 'returned') {
+      const backs = s.lines.filter((l) => l.back > 0).map((l) => money(l.back));
+      why.push(t('ultimate.why.returnedTotal', { detail: backs.length ? backs.join(' + ') : money(0), amount: money(s.returned) }));
+    }
     const totals = ['paid', 'receives', 'push', 'chipsPay', 'chipsReturn'];
     if (totals.includes(q.situation)) {
       const wins = s.lines.filter((l) => l.win > 0).map((l) => money(l.win));

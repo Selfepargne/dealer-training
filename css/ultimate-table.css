@@ -62,6 +62,8 @@
 }
 .uth-tag--qualified, .uth-tag--win { border-color: var(--accent-line); color: var(--accent-hi); }
 .uth-tag--not-qualified, .uth-tag--lose { color: var(--text-3); }
+/* "Does the dealer qualify?": the badge waits for the answer */
+.uth-tag[hidden] { display: none; }
 
 /* ---- Players' layouts --------------------------------------------------------- */
 

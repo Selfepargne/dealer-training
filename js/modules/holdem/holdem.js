@@ -42,7 +42,9 @@
   function playersFor(skillId, setting, random = Math.random) {
     if (TABLE_SIZES.includes(Number(setting))) return Number(setting);
     const skill = DT.data.holdemSkills.byId[skillId];
-    const [min, max] = skill.players || AUTO_PLAYERS[skill.level];
+    // A skill's range can follow its stage: { 1: [2, 2], 2: [2, 3], 3: [3, 3] }
+    const range = Array.isArray(skill.players) ? skill.players : skill.players ? skill.players[stageFor(skillId)] : AUTO_PLAYERS[skill.level];
+    const [min, max] = range;
     return min + Math.floor(random() * (max - min + 1));
   }
 
@@ -145,8 +147,8 @@
     if (q.kind === 'recognition') {
       return {
         stage: h('div', { class: 'holdem table--solo' }, felt(q), seat(q, 0, 'bottom', t('holdem.hole'))),
-        prompt: t('exercises.holdem.recognition'),
-        options: q.options.map((c) => ({ id: c, label: t(`poker.categories.${c}`) })),
+        prompt: t(q.situation === 'bestFive' || q.situation === 'holeCards' ? `exercises.holdem.${q.situation}` : 'exercises.holdem.recognition'),
+        options: q.options.map((id) => ({ id, label: recognitionLabel(q, id) })),
       };
     }
 
@@ -161,6 +163,13 @@
         { id: 'split', label: t('holdem.split') },
       ],
     };
+  }
+
+  /** A hand type, five cards, or a number of hole cards. */
+  function recognitionLabel(q, id) {
+    if (q.optionKind === 'cards') return cardsText(id.split(' '));
+    if (q.optionKind === 'holeCount') return t(`holdem.holeCount.${id}`);
+    return t(`poker.categories.${id}`);
   }
 
   function correct(q) {
@@ -204,13 +213,23 @@
     if (q.kind === 'ultimate') return ultimateView.explain(q);
     if (q.kind === 'recognition') {
       const hand = q.players[0].hand;
+      const hole = q.players[0].cards;
+      const traps = (q.decoys || []).map((d) => t(`holdem.why.decoys.${d}`, { hand: handName(hand) }));
+      const best = { label: t('holdem.why.bestFive'), cards: cardsText(hand.cards), hand: handName(hand) };
+      if (q.situation === 'holeCards') {
+        const used = hand.cards.filter((c) => hole.includes(c));
+        return {
+          headline: recognitionLabel(q, q.answer),
+          hand: handName(hand),
+          short: t(`holdem.short.holeCards.${q.answer}`),
+          why: [best, used.length ? t('holdem.why.holeUsed', { cards: cardsText(used) }) : t('holdem.why.boardOnly'), ...traps],
+        };
+      }
       return {
-        headline: handName(hand),
-        short: t('holdem.short.recognition'),
-        why: [
-          { label: t('holdem.why.bestFive'), cards: cardsText(hand.cards), hand: handName(hand) },
-          t('holdem.why.othersIgnored'),
-        ],
+        headline: q.situation === 'bestFive' ? cardsText(hand.cards) : handName(hand),
+        hand: q.situation === 'bestFive' ? handName(hand) : undefined,
+        short: t(q.situation === 'bestFive' ? 'holdem.short.bestFive' : 'holdem.short.recognition'),
+        why: [best, t('holdem.why.othersIgnored'), ...traps],
       };
     }
 

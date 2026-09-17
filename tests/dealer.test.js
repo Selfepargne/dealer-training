@@ -381,7 +381,7 @@ test('Generated "who acts" situations cover the fold patterns and always match t
     for (let i = 0; i < 20000; i++) {
       const n = 2 + (i % 5);
       const q = createQuestion(id, { players: n, stage: 2 + (i % 2) });
-      if (!['firstPreflop', 'firstPostflop', 'whoActs'].includes(q.situation)) continue;
+      if (!['firstPreflop', 'firstPostflop', 'firstActive', 'whoActs'].includes(q.situation)) continue;
       const street = q.street;
       const active = q.seats.map((s, k) => (s.folded ? -1 : k)).filter((k) => k >= 0);
       const acted = q.situation === 'whoActs' ? q.seats.map((s, k) => (!s.folded && s.status ? k : -1)).filter((k) => k >= 0) : [];
@@ -506,36 +506,70 @@ function assertReadable(q, where) {
 }
 
 test('Table setup: every answer follows the rules, heads-up included; markers never give the answer away', () => {
-  const seen = generate('table_setup', (q, n) => {
+  const folds = { 1: 0, 2: 0, 3: 0 };
+  const seen = generate('table_setup', (q, n, stage) => {
     const b = q.button;
     const hu = n === 2;
     const sb = hu ? b : (b + 1) % n;
     const bb = hu ? (b + 1) % 2 : (b + 2) % n;
+    const first = hu ? bb : sb; // first card
     const expected = {
+      button: b,
       sb, bb,
-      firstCard: hu ? bb : sb,
+      firstCard: first,
       lastCard: b,
       nextCard: q.target != null ? (q.target + 1) % n : -1,
+      nthCard: (first + (q.nth - 1)) % n,
       // Read from the table: first seat after BB (preflop) / after the button (postflop) that still holds cards.
       firstPreflop: firstActiveFrom(q, (bb + 1) % n),
       firstPostflop: firstActiveFrom(q, (b + 1) % n),
+      firstActive: q.street === 'preflop' ? firstActiveFrom(q, (bb + 1) % n) : firstActiveFrom(q, (b + 1) % n),
       nextButton: (b + 1) % n,
       nextSB: hu ? (b + 1) % n : (b + 2) % n,
       nextBB: hu ? b : (b + 3) % n,
+      buttonIn: (b + q.hands) % n,
     }[q.situation];
     assert(q.answer === String(expected), `${q.situation}: expected Player ${expected + 1}`);
-    if (q.situation === 'firstPreflop' || q.situation === 'firstPostflop') assertReadable(q, q.situation);
     assert(q.options.length === n, 'one option per player');
-    if (['sb', 'bb', 'nextButton', 'nextSB', 'nextBB'].includes(q.situation)) assert(!q.showBlinds, 'blind markers hidden');
+    if (['firstPreflop', 'firstPostflop', 'firstActive'].includes(q.situation)) assertReadable(q, q.situation);
+    if (['sb', 'bb', 'nextButton', 'nextSB', 'nextBB', 'buttonIn'].includes(q.situation)) assert(!q.showBlinds, 'blind markers hidden');
     if (q.situation === 'nextCard') assert(q.target !== q.answer && q.target !== b, 'the button never gets a card after the last one');
+    if (q.situation === 'nthCard') assert(q.nth >= 2 && q.nth <= 2 * n, 'a card of the two rounds');
+    if (q.situation === 'buttonIn') assert(q.hands >= 2 && q.hands <= n, 'two hands to a full round');
+    if (q.situation === 'button') {
+      // Hidden button, posted blinds: the button is read from the blinds alone
+      assert(q.hideButton && q.showBlinds && D.blindsShown(q), 'button hidden, blinds shown');
+      const sbSeat = q.seats.findIndex((s) => s.bet === q.blinds.sb);
+      equal(q.answer, String(hu ? sbSeat : (sbSeat - 1 + n) % n), 'button read from the small blind');
+    } else assert(!q.hideButton, 'the button is shown');
+    const folded = q.seats.filter((s) => s.folded).length;
+    if (folded) {
+      assert(q.situation === 'firstActive' && q.street !== 'preflop', 'folded players only in hands in progress after the flop');
+      folds[stage]++;
+    }
   });
-  equal([...seen[1]].sort(), ['bb', 'firstCard', 'nextButton', 'nextCard', 'sb'], 'stage 1');
-  assert(seen[2].has('firstPreflop') && seen[2].has('firstPostflop') && seen[2].has('lastCard'), 'stage 2 adds the order of action');
-  assert(seen[3].has('nextSB') && seen[3].has('nextBB'), 'stage 3 adds the next blinds');
+  equal([...seen[1]].sort(), ['bb', 'button', 'firstCard', 'lastCard', 'nextCard', 'sb'], 'stage 1: the table at rest');
+  equal([...seen[2]].sort(), ['firstPostflop', 'firstPreflop', 'nextBB', 'nextButton', 'nextSB', 'nthCard'], 'stage 2: order of action, next hand, n-th card');
+  equal([...seen[3]].sort(), ['buttonIn', 'firstActive', 'nextBB', 'nextSB', 'nthCard'], 'stage 3: hands in progress, rotation');
+  assert(folds[1] === 0 && folds[2] === 0 && folds[3] > 50, `folded players only at stage 3: ${JSON.stringify(folds)}`);
 });
 
+/** Independent reading of a betting round from the table: active players, highest bet, who still has to act. */
+function readRound(q) {
+  const active = q.seats.map((s, i) => (s.cards && !s.folded ? i : -1)).filter((i) => i >= 0);
+  const highest = Math.max(0, ...active.map((i) => q.seats[i].bet));
+  const pending = active.filter((i) => !q.seats[i].status || q.seats[i].bet < highest);
+  return { active, highest, pending };
+}
+/** From `from` (excluded), clockwise, the first seat in `list`. */
+function nextIn(n, from, list) {
+  for (let k = 1; k <= n; k++) if (list.includes((from + k) % n)) return (from + k) % n;
+  return -1;
+}
+
 test('Flow of a hand: whose turn and what the dealer does, read from the table', () => {
-  const seen = generate('hand_flow', (q, n) => {
+  const variants = new Set();
+  const seen = generate('hand_flow', (q, n, stage) => {
     const inHand = q.seats.map((s, i) => (s.cards ? i : -1)).filter((i) => i >= 0);
     const bets = q.seats.map((s) => s.bet);
     const boardCount = { preflop: 0, flop: 3, turn: 4, river: 5 }[q.street];
@@ -546,6 +580,11 @@ test('Flow of a hand: whose turn and what the dealer does, read from the table',
     });
     assert(stacksOk(q.potStacks) && D.stacksTotal(q.potStacks) === q.pot, 'pot stacks');
     assert(q.situation === 'street' || inHand.length >= 1, 'players in the hand');
+    if (stage === 1) assert(q.seats.every((s) => !s.folded), 'stage 1: nobody folded');
+    if (stage < 3) assert(!['afterRaise', 'showOrder', 'pushPot', 'announce'].includes(q.situation), 'stage 3 situations stay at stage 3');
+    const round = readRound(q);
+    const hu = n === 2;
+    const b = q.button;
 
     switch (q.situation) {
       case 'street':
@@ -553,18 +592,50 @@ test('Flow of a hand: whose turn and what the dealer does, read from the table',
         break;
       case 'whoActs': {
         // Independent: first seat from the start of the action, clockwise, still in the hand and without a status.
-        const hu = n === 2;
-        const b = q.button;
         const start = q.street === 'preflop' ? (hu ? b : (b + 3) % n) : (hu ? (b + 1) % 2 : (b + 1) % n);
         let seat = start;
         while (!(q.seats[seat].cards && !q.seats[seat].folded && !q.seats[seat].status)) seat = (seat + 1) % n;
         assert(q.answer === String(seat), `whoActs: expected Player ${seat + 1}`);
         assertReadable(q, 'whoActs');
         q.seats.forEach((s, i) => { if (!s.cards) assert(s.folded, `a player without cards is shown COUCHÉ (Player ${i + 1})`); });
-        const inHandCount = q.seats.filter((s) => s.cards).length;
-        assert(inHandCount >= 2, 'at least two players still in the hand');
-        // Everyone in the hand between the start and the answer has acted.
+        assert(q.seats.filter((s) => s.cards).length >= 2, 'at least two players still in the hand');
         for (let k = start; k !== seat; k = (k + 1) % n) assert(!q.seats[k].cards || q.seats[k].status, 'acted before');
+        if (stage === 1) assert(q.street === 'preflop' && q.seats.every((s) => [null, 'call', 'check'].includes(s.status)), 'stage 1: preflop, calls and checks');
+        if (stage < 3) assert(q.seats.every((s) => s.status !== 'raise' && s.status !== 'fold'), 'no raise nor fold during the round before stage 3');
+        break;
+      }
+      case 'roundOver': {
+        assert(round.active.length >= 2, 'at least two players');
+        const over = round.pending.length === 0;
+        if (q.answer === 'wait') {
+          assert(!over, 'someone still has to act');
+          variants.add(`wait:${q.variant}`);
+          // reopened: every player spoke, one has less than the highest bet
+          if (q.variant === 'reopened') assert(round.pending.some((i) => q.seats[i].status), 'a player who spoke must speak again');
+        } else {
+          assert(over, `round over: ${round.pending}`);
+          const expected = bets.some(Boolean) ? 'collect' : q.street === 'river' ? 'showdown' : { preflop: 'dealFlop', flop: 'dealTurn', turn: 'dealRiver' }[q.street];
+          equal(q.answer, expected, 'collect, or go on when everybody checked');
+          variants.add(`over:${q.variant}`);
+        }
+        break;
+      }
+      case 'afterRaise': {
+        assertReadable(q, 'afterRaise');
+        const raisers = round.active.filter((i) => q.seats[i].status === 'raise');
+        equal(raisers.length, 1, 'one raise on the table');
+        // Independent: from the raiser, clockwise, the first active player who has not matched the raise
+        equal(q.answer, String(nextIn(n, raisers[0], round.pending)), 'first player after the raise who has not matched it');
+        if (round.pending.some((i) => q.seats[i].status && i === Number(q.answer))) variants.add('afterRaise:speaks again');
+        break;
+      }
+      case 'showOrder': {
+        assert(q.street === 'river' && round.active.length >= 2 && round.pending.length === 0, 'river betting over');
+        const raiser = round.active.find((i) => q.seats[i].status === 'raise');
+        const bettor = round.active.find((i) => q.seats[i].status === 'bet');
+        const expected = raiser != null ? raiser : bettor != null ? bettor : nextIn(n, b, round.active);
+        equal(q.answer, String(expected), 'last aggressor, else first active after the button');
+        variants.add(`showOrder:${raiser != null || bettor != null ? 'aggressor' : 'checked'}`);
         break;
       }
       case 'collect':
@@ -587,23 +658,41 @@ test('Flow of a hand: whose turn and what the dealer does, read from the table',
         break;
       case 'pushPot':
         assert(bets.every((v) => !v) && q.pot > 0, 'pot ready');
-        if (q.variant === 'folds') assert(inHand.length === 1, 'one player left');
-        else assert(q.seats.filter((s) => s.marked).length === 1 && q.street === 'river', 'one winner announced');
+        if (q.variant === 'folds') assert(inHand.length === 1 && q.answer === 'pushPot', 'one player left');
+        else {
+          const { winners } = window.DT.poker.showdown(q.board, inHand.map((i) => q.seats[i].hole));
+          equal(q.seats.map((s, i) => (s.marked ? i : -1)).filter((i) => i >= 0), winners.map((w) => inHand[w]), 'marked = engine winners');
+          equal(q.answer, winners.length > 1 ? 'splitPot' : 'pushPot', 'one winner: push, a tie: split');
+          assert(q.street === 'river', 'after the river');
+        }
+        variants.add(`pushPot:${q.variant}`);
         break;
       default:
         throw new Error(`unknown situation ${q.situation}`);
     }
-    if (q.optionKind === 'action') assert(q.options.length === 4 && q.options.every((o) => D.ACTIONS.includes(o)), 'four dealer actions');
+    if (q.optionKind === 'action') assert(q.options.length === 4 && q.options.includes(q.answer) && q.options.every((o) => D.ACTIONS.includes(o)), 'four dealer actions');
   });
-  equal([...seen[1]].sort(), ['collect', 'dealNext', 'street'], 'stage 1');
-  assert(seen[2].has('whoActs') && seen[2].has('showdown') && seen[2].has('announce'), 'stage 2');
-  assert(seen[3].has('pushPot'), 'stage 3');
+  equal([...seen[1]].sort(), ['collect', 'dealNext', 'street', 'whoActs'], 'stage 1');
+  equal([...seen[2]].sort(), ['collect', 'dealNext', 'roundOver', 'showdown', 'whoActs'], 'stage 2');
+  equal([...seen[3]].sort(), ['afterRaise', 'announce', 'pushPot', 'roundOver', 'showOrder', 'whoActs'], 'stage 3');
+  ['wait:notActed', 'wait:reopened', 'over:bets', 'afterRaise:speaks again', 'showOrder:aggressor', 'showOrder:checked', 'pushPot:folds', 'pushPot:winner']
+    .forEach((v) => assert(variants.has(v), `variant never generated: ${v}`));
+});
+
+test('Flow of a hand: split pots and "checked around" rounds are generated', () => {
+  const found = new Set();
+  for (let i = 0; i < 6000 && found.size < 2; i++) {
+    const q = createQuestion('hand_flow', { players: 2 + (i % 5), stage: 2 + (i % 2) });
+    if (q.answer === 'splitPot') found.add('split');
+    if (q.situation === 'roundOver' && q.variant === 'checked') found.add('checked');
+  }
+  equal([...found].sort(), ['checked', 'split'], 'rare situations still appear');
 });
 
 test('Flow of a hand: pushing the pot after the showdown gives it to the real winner', () => {
   const P = window.DT.poker;
   let count = 0;
-  for (let i = 0; count < 30 && i < 20000; i++) {
+  for (let i = 0; count < 30 && i < 40000; i++) {
     const q = createQuestion('hand_flow', { players: 2 + (i % 5), stage: 3 });
     if (q.situation !== 'pushPot' || q.variant !== 'winner') continue;
     count++;
@@ -623,22 +712,36 @@ test('Chips & bets: every amount recomputed from the chips on the table', () => 
       if (s.behind != null) assert(stacksOk(s.behindStacks) && D.stacksTotal(s.behindStacks) === s.behind, 'behind stacks');
       if (!s.cards) assert(s.bet === (q.street === 'preflop' ? blindOf(q, i) : 0), 'a folded player keeps only the blind');
     });
+    if (stage === 1) assert(q.seats.every((s) => !s.folded && s.status !== 'raise'), 'stage 1: no fold, no raise');
     const pot = D.stacksTotal(q.potStacks);
     const t = q.target;
     const othersMax = Math.max(0, ...bets.filter((_, i) => i !== t));
     const answer = Number(q.answer);
+    const toCall = t != null ? Math.max(...bets) - bets[t] : null;
     assert(q.showValues === (stage < 3), 'chip values written on stages 1–2 only');
+    assert(q.hideCave == null || q.situation === 'cave', 'a cave amount is hidden only when it is the question');
 
     switch (q.situation) {
       case 'stack':
       case 'committed':
         assert(answer === bets[t] && q.seats[t].cards, 'amount in front of the target');
         break;
+      case 'cave':
+        assert(answer === D.stacksTotal(q.seats[t].behindStacks) && q.hideCave === t && q.seats[t].cards, 'chips of the cave, amount hidden');
+        break;
+      case 'caveAfter':
+        assert(toCall > 0 && answer === q.seats[t].behind - toCall && answer > 0, 'cave − amount to call');
+        break;
+      case 'canCall':
+        assert(toCall > 0, 'something to call');
+        equal(q.answer, q.seats[t].behind >= toCall ? 'yes' : 'no', 'the cave covers the call or not');
+        equal(q.options, ['yes', 'no'], 'yes / no');
+        break;
       case 'pot':
         assert(answer === pot && bets.every((v) => !v), 'pot only');
         break;
       case 'toCall':
-        assert(answer === Math.max(...bets) - bets[t] && answer > 0, 'highest bet − own bet');
+        assert(answer === toCall && answer > 0, 'highest bet − own bet');
         assert(q.seats[t].cards, 'target still in the hand');
         break;
       case 'raise':
@@ -658,6 +761,7 @@ test('Chips & bets: every amount recomputed from the chips on the table', () => 
         const behind = q.seats[t].behind;
         const expected = behind === 0 ? 'allIn' : othersMax === 0 ? 'bet' : bets[t] === othersMax ? 'call' : bets[t] >= 2 * othersMax ? 'raise' : 'invalid';
         assert(q.answer === expected, `action: expected ${expected}`);
+        if (stage === 2) assert(q.answer !== 'allIn', 'the all-in comes at stage 3');
         // The action is recorded (the view hides it for this player: it is the question).
         equal(q.seats[t].status, q.answer, 'recorded action = answer');
         break;
@@ -672,9 +776,95 @@ test('Chips & bets: every amount recomputed from the chips on the table', () => 
       assert(q.options.length === 4 && new Set(q.options).size === 4 && q.options.every((o) => Number(o) > 0), 'four positive amounts');
     }
   });
-  equal([...seen[1]].sort(), ['pot', 'stack', 'toCall'], 'stage 1');
-  equal([...seen[2]].sort(), ['action', 'allIn', 'pot', 'potAfter', 'raise', 'stack', 'toCall'], 'stage 2');
-  assert(seen[3].has('change') && seen[3].has('committed'), 'stage 3');
+  equal([...seen[1]].sort(), ['cave', 'pot', 'stack', 'toCall'], 'stage 1: read amounts');
+  equal([...seen[2]].sort(), ['action', 'canCall', 'caveAfter', 'committed', 'potAfter', 'toCall'], 'stage 2: one step of calculation');
+  equal([...seen[3]].sort(), ['action', 'allIn', 'change', 'committed', 'potAfter', 'raise', 'toCall'], 'stage 3: full table');
+});
+
+test('Chips & bets: "can call" gives both answers', () => {
+  const answers = new Set();
+  for (let i = 0; i < 1500; i++) {
+    const q = createQuestion('chips_bets', { players: 2 + (i % 5), stage: 2 });
+    if (q.situation === 'canCall') answers.add(q.answer);
+  }
+  equal([...answers].sort(), ['no', 'yes'], 'yes and no');
+});
+
+// ---------------------------------------------------------------------------
+// Rules — who still has to act, end of the round, showdown order
+// ---------------------------------------------------------------------------
+
+test('A bet or a raise reopens the action: pendingPlayers, roundComplete, getNextAfter on every table', () => {
+  // 4 players, flop: J1 checks, J2 bets 20, J3 raises to 40, J4 calls → J1 (never matched) then J2 (matched 20 only)
+  const round = { active: [0, 1, 2, 3], acted: [0, 1, 2, 3], bets: [0, 20, 40, 40] };
+  equal(D.pendingPlayers(round), [0, 1], 'J1 and J2 must act again');
+  assert(!D.roundComplete(round), 'round not over');
+  equal(D.getNextAfter({ players: 4, active: round.active, pending: [0, 1] }, 3).seat, 0, 'after J4: J1');
+  equal(D.getNextAfter({ players: 4, active: round.active, pending: [1] }, 0).seat, 1, 'after J1 calls: J2');
+  assert(D.roundComplete({ active: [0, 1, 2, 3], acted: [0, 1, 2, 3], bets: [40, 40, 40, 40] }), 'everybody matched: over');
+  // Preflop: the big blind keeps its option
+  assert(!D.roundComplete({ active: [0, 1, 2], acted: [0, 1], bets: [10, 10, 10] }), 'BB has not acted: not over');
+  // Folded players are passed over
+  equal(D.getNextAfter({ players: 5, active: [0, 2, 4], pending: [0] }, 2), { seat: 0, skipped: [3] }, 'J4 folded is skipped');
+
+  // Every table and fold pattern: getNextAfter = the first pending seat clockwise after the last one to act
+  let cases = 0;
+  for (let n = 2; n <= 6; n++) {
+    for (let mask = 0; mask < 1 << n; mask++) {
+      const active = [...Array(n).keys()].filter((i) => mask & (1 << i));
+      if (active.length < 2) continue;
+      for (const last of active) {
+        for (let pm = 1; pm < 1 << active.length; pm++) {
+          const pending = active.filter((_, k) => pm & (1 << k)).filter((i) => i !== last);
+          if (!pending.length) continue;
+          equal(D.getNextAfter({ players: n, active, pending }, last).seat, nextIn(n, last, pending), `${n} players, active ${active}, last J${last + 1}`);
+          cases++;
+        }
+      }
+    }
+  }
+  assert(cases > 2000, `${cases} cases`);
+});
+
+test('Showdown order is a house rule: documented default in js/data/house-rules.js, another rule changes every answer', () => {
+  require('../js/data/house-rules.js');
+  equal(window.DT.data.houseRules.showdownOrder, 'lastAggressor', 'project default');
+  equal(D.showdownRule(), 'lastAggressor', 'read by dealer.js');
+  equal(D.SHOWDOWN_ORDERS, ['lastAggressor', 'leftOfButton'], 'the rules offered');
+  const table = { players: 5, button: 1, active: [0, 2, 4], lastAggressor: 4 };
+  equal(D.showdownFirst(table, 'lastAggressor'), 4, 'last aggressor: J5, who bet');
+  equal(D.showdownFirst(table, 'leftOfButton'), 2, 'left of the button: J3, even though J5 bet');
+
+  window.DT.data.houseRules.showdownOrder = 'leftOfButton';
+  try {
+    equal(D.showdownRule(), 'leftOfButton', 'the setting is followed');
+    let count = 0;
+    for (let i = 0; i < 20000 && count < 40; i++) {
+      const n = 2 + (i % 5);
+      const q = createQuestion('hand_flow', { players: n, stage: 3 });
+      if (q.situation !== 'showOrder') continue;
+      count++;
+      const active = q.seats.map((s, k) => (s.cards && !s.folded ? k : -1)).filter((k) => k >= 0);
+      equal([q.showdownRule, q.variant], ['leftOfButton', 'leftOfButton'], 'the question records the rule');
+      equal(q.answer, String(nextIn(n, q.button, active)), 'first active player after the button, whatever the betting');
+    }
+    equal(count, 40, 'showdown questions generated with the other rule');
+    window.DT.data.houseRules.showdownOrder = 'something else';
+    equal(D.showdownRule(), 'lastAggressor', 'an unknown value falls back to the default');
+  } finally {
+    window.DT.data.houseRules.showdownOrder = 'lastAggressor';
+  }
+});
+
+test('Showdown order, default house rule: the last aggressor shows first; if everybody checked, the first active player after the button', () => {
+  equal(D.showdownFirst({ players: 5, button: 1, active: [0, 2, 4], lastAggressor: 4 }), 4, 'J5 bet last: J5 shows first');
+  equal(D.showdownFirst({ players: 5, button: 1, active: [0, 2, 4], lastAggressor: null }), 2, 'all checked: J3, first active after the button J2');
+  equal(D.showdownFirst({ players: 6, button: 5, active: [1, 3], lastAggressor: null }), 1, 'J1 folded: J2');
+  equal(D.showdownFirst({ players: 2, button: 0, active: [0, 1], lastAggressor: null }), 1, 'heads-up: the big blind');
+  for (let n = 2; n <= 6; n++) for (let b = 0; b < n; b++) {
+    const active = [...Array(n).keys()];
+    equal(D.showdownFirst({ players: n, button: b, active }), D.getFirstToAct({ players: n, button: b, active }, 'river').seat, 'checked = order of the river');
+  }
 });
 
 test('Chips & bets: bets, raises and all-ins appear at 2 to 6 players', () => {

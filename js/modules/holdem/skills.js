@@ -83,6 +83,63 @@
   // ---------------------------------------------------------------------------
 
   const WINNER = {
+    // Beginner comparison, stage 1: a pair against a high card
+    pair_vs_high: {
+      seed(random) {
+        const pair = sameRank(values(1, random)[0], 2, random);
+        return { hands: random() < 0.5 ? [pair, []] : [[], pair] };
+      },
+      check: ({ hands, split }) => !split && hands.map(category).sort().join() === 'highCard,pair',
+    },
+
+    // Stage 2: two different hand types, one step apart (pair / two pair, two pair / three of a kind…)
+    different_types: {
+      seed: () => ({}),
+      check: ({ hands, split }) => !split && Math.abs(hands[0].category - hands[1].category) === 1 && Math.min(hands[0].category, hands[1].category) >= 1,
+    },
+
+    // Stage 2: a simple tie — the board makes a straight and both players play it
+    board_split: {
+      seed(random) {
+        const low = int(2, 10, random);
+        return { board: [0, 1, 2, 3, 4].map((k) => card(low + k, randomSuit(random))) };
+      },
+      check: ({ board, hands, split }) => split && boardCategory(board) === 'straight' && hands.every((h) => playsBoard(h, board)),
+    },
+
+    // Stage 3: the same two pairs on the board, the kicker decides
+    two_pair_kicker: {
+      seed(random) {
+        const [x, y, z, a, b] = values(5, random);
+        return { board: [...sameRank(x, 2, random), ...sameRank(y, 2, random), card(z, randomSuit(random))], hands: [[card(a, randomSuit(random))], [card(b, randomSuit(random))]] };
+      },
+      check: ({ hands, split }) => !split && hands.every((h) => category(h) === 'twoPair')
+        && hands[0].values[0] === hands[1].values[0] && hands[0].values[1] === hands[1].values[1] && firstDifference(hands[0], hands[1]) === 2,
+    },
+
+    // Stage 3: a strong-looking hand loses to the hand just above it (straight / flush, flush / full house, two pair / three of a kind)
+    trap: {
+      seed(random) {
+        const [s, o1, o2, o3] = P.shuffle(P.SUITS.split(''), random);
+        const swap = (hands) => (random() < 0.5 ? hands : hands.reverse());
+        const variant = int(0, 2, random);
+        if (variant === 0) {
+          // Three suited cards in a row on the board: a straight with two cards, a flush with two suited cards
+          const low = int(2, 10, random);
+          const [f1, f2] = values(2, random, [low - 1, low, low + 1, low + 2, low + 3, low + 4]);
+          return { board: [card(low, s), card(low + 1, s), card(low + 2, s)], hands: swap([[card(low + 3, o1), card(low + 4, o2)], [card(f1, s), card(f2, s)]]) };
+        }
+        const [x, y, z, f] = values(4, random);
+        if (variant === 1) {
+          // Four suited cards on the board and a pair: a flush with one suited card, a full house with the right two cards
+          return { board: [card(x, s), card(x, o1), card(y, s), card(z, s)], hands: swap([[card(f, s)], [card(x, o2), card(y, o3)]]) };
+        }
+        // Two pair with both hole cards against a set
+        return { board: [card(x, s), card(y, o1), card(z, o2)], hands: swap([[card(x, o3), card(y, o3)], [card(z, s), card(z, o3)]]) };
+      },
+      check: ({ hands, split }) => !split && Math.abs(hands[0].category - hands[1].category) === 1 && Math.min(hands[0].category, hands[1].category) >= 2,
+    },
+
     simple_winner: {
       seed: () => ({}),
       check: ({ hands, split }) => !split && Math.abs(hands[0].category - hands[1].category) >= 2,
@@ -241,18 +298,24 @@
   };
 
   // Beginner "hand comparison" gathers the basic comparisons; the situations get closer stage by stage.
+  // Stage 1: clear winners · stage 2: same or neighbouring hand types, simple ties · stage 3: kickers, shared boards, traps.
   const COMPARISON_SOURCES = {
-    1: ['simple_winner', 'pair_vs_pair'],
-    2: ['pair_vs_pair', 'two_pair', 'trips', 'kicker'],
-    3: ['two_pair', 'trips', 'kicker', 'board_pair', 'board_plays'],
+    1: ['pair_vs_high', 'simple_winner', 'pair_vs_pair'],
+    2: ['pair_vs_pair', 'two_pair', 'trips', 'different_types', 'board_split'],
+    3: ['kicker', 'two_pair_kicker', 'trips', 'board_pair', 'board_plays', 'trap'],
   };
 
   // Expert draws its situations from the closest intermediate and advanced skills.
   const CLOSE_CALL_SOURCES = ['kicker', 'full_house', 'board_plays', 'straight_on_board', 'flush_on_board', 'full_house_on_board', 'complex_kicker'];
 
   // ---------------------------------------------------------------------------
-  // Hand recognition: "What is the best hand?" (one player, 7 cards)
+  // Hand recognition (one player, 2 hole cards + 5 on the board)
+  //   bestHand  — "Best hand?"                        stage 1: a clear hand · stage 2: any · stage 3: something misleading
+  //   bestFive  — "Which five cards make the hand?"   stage 2: any · stage 3: something misleading, or the board plays
+  //   holeCards — "How many hole cards play?"         stage 2: any · stage 3: the board plays, or one hole card changes the hand
   // ---------------------------------------------------------------------------
+
+  const RECOGNITION_TYPES = { 1: ['bestHand'], 2: ['bestHand', 'bestFive', 'holeCards'], 3: ['bestHand', 'bestFive', 'holeCards'] };
 
   const RECOGNITION_SEEDS = {
     highCard: () => [],
@@ -266,33 +329,146 @@
     straightFlush: (r) => { const s = randomSuit(r); const low = int(2, 10, r); return [0, 1, 2, 3, 4].map((k) => card(low + k, s)); },
   };
 
+  /** The 21 five-card hands of seven cards, evaluated by the engine. */
+  function allFives(seven) {
+    const fives = [];
+    for (let a = 0; a < 7; a++) for (let b = a + 1; b < 7; b++) {
+      fives.push(P.evaluate5(seven.filter((_, k) => k !== a && k !== b)));
+    }
+    return fives;
+  }
+
+  /**
+   * What can mislead the reader of seven cards, besides the best hand:
+   *   straight / flush — also present, but not the best hand · threePairs · twoTrips · pairToo — a pair next to a straight or flush
+   *   fourFlush / fourStraight — four cards that look like a flush or a straight
+   */
+  function decoys(seven, best) {
+    const type = category(best);
+    const ranks = {};
+    const suits = {};
+    seven.forEach((c) => { ranks[c[0]] = (ranks[c[0]] || 0) + 1; suits[c[1]] = (suits[c[1]] || 0) + 1; });
+    const counts = Object.values(ranks);
+    const maxSuit = Math.max(...Object.values(suits));
+    const present = new Set(seven.map(P.rankValue));
+    if (present.has(14)) present.add(1);
+    let run = 0;
+    let longest = 0;
+    for (let v = 1; v <= 14; v++) { run = present.has(v) ? run + 1 : 0; longest = Math.max(longest, run); }
+    const list = [];
+    if (longest >= 5 && !['straight', 'straightFlush'].includes(type)) list.push('straight');
+    if (maxSuit >= 5 && !['flush', 'straightFlush'].includes(type)) list.push('flush');
+    if (counts.filter((c) => c === 2).length >= 3) list.push('threePairs');
+    if (counts.filter((c) => c === 3).length >= 2) list.push('twoTrips');
+    if (['straight', 'flush', 'straightFlush'].includes(type) && counts.some((c) => c >= 2)) list.push('pairToo');
+    if (maxSuit === 4) list.push('fourFlush');
+    if (longest === 4) list.push('fourStraight');
+    return list;
+  }
+
+  /** How many hole cards play: one number, or null when two equal best hands use a different number. */
+  function holeCardsPlaying(hole, seven, best) {
+    const counts = new Set(allFives(seven).filter((f) => P.compare(f, best) === 0).map((f) => f.cards.filter((c) => hole.includes(c)).length));
+    return counts.size === 1 ? [...counts][0] : null;
+  }
+
   // The last hand types asked, so the same answer does not come back twice in a row.
   const recentTargets = [];
 
-  function recognitionQuestion(random, stage) {
-    const target = pick(P.CATEGORIES.filter((c) => !recentTargets.includes(c)), random);
+  /** Chosen once per question (like the comparison source), so the harder situations are not under-represented. */
+  function recognitionPlan(stage, random) {
+    const situation = pick(RECOGNITION_TYPES[stage], random);
+    const flavor = stage === 3 && situation === 'holeCards' ? pick(['board', 'oneCard'], random)
+      : stage === 3 && situation === 'bestFive' ? pick(['decoy', 'decoy', 'board'], random) : null;
+    return { situation, flavor };
+  }
+
+  function recognitionQuestion(random, stage, { situation, flavor }) {
+    const pool = P.CATEGORIES.filter((c) => !recentTargets.includes(c) && !(stage === 1 && c === 'highCard'));
+    const target = pick(flavor === 'oneCard' ? pool.filter((c) => c !== 'highCard') : pool, random);
     const forced = RECOGNITION_SEEDS[target](random);
     const deck = P.shuffle(P.newDeck().filter((c) => !forced.includes(c)), random);
-    const seven = P.shuffle(forced.concat(deck.slice(0, 7 - forced.length)), random);
+    let seven;
+    if (flavor === 'board' && forced.length) {
+      // The forced cards on the board, the two hole cards dealt at random
+      const board = P.shuffle(forced.concat(deck.slice(0, 5 - forced.length)), random);
+      seven = [...deck.slice(5 - forced.length, 7 - forced.length), ...board];
+    } else if (flavor === 'oneCard') {
+      // Exactly one forced card in the hand
+      const [inHand, ...rest] = P.shuffle(forced.slice(), random);
+      const board = P.shuffle(rest.concat(deck.slice(0, 5 - rest.length)), random);
+      seven = [inHand, deck[5 - rest.length], ...board];
+    } else {
+      seven = P.shuffle(forced.concat(deck.slice(0, 7 - forced.length)), random);
+    }
+    if (new Set(seven).size !== 7) return null;
+    const hole = seven.slice(0, 2);
+    const board = seven.slice(2);
     const hand = P.bestHand(seven);
     if (category(hand) !== target) return null;
+    const found = decoys(seven, hand);
+    const playing = holeCardsPlaying(hole, seven, hand);
 
-    // Three wrong answers. First stage: any hand types. Later: the neighbouring types, the easiest to confuse.
-    const index = P.CATEGORIES.indexOf(target);
-    const distance = (c) => Math.abs(P.CATEGORIES.indexOf(c) - index);
-    let others = P.shuffle(P.CATEGORIES.filter((c) => c !== target), random);
-    if (stage > 1) others = others.sort((a, b) => distance(a) - distance(b));
-    const options = [target, ...others.slice(0, 3)].sort((a, b) => P.CATEGORIES.indexOf(a) - P.CATEGORIES.indexOf(b));
+    let options;
+    let answer;
+    let optionKind;
+    switch (situation) {
+      case 'bestHand': {
+        if (stage === 1 && found.length) return null; // stage 1: a clear hand
+        if (stage === 3 && !found.length) return null; // stage 3: something misleading
+        // Three wrong answers. First stage: any hand types. Later: the neighbouring types, the easiest to confuse.
+        const index = P.CATEGORIES.indexOf(target);
+        const distance = (c) => Math.abs(P.CATEGORIES.indexOf(c) - index);
+        let others = P.shuffle(P.CATEGORIES.filter((c) => c !== target), random);
+        if (stage > 1) others = others.sort((a, b) => distance(a) - distance(b));
+        options = [target, ...others.slice(0, 3)].sort((a, b) => P.CATEGORIES.indexOf(a) - P.CATEGORIES.indexOf(b));
+        answer = target;
+        optionKind = 'category';
+        break;
+      }
+      case 'bestFive': {
+        if (flavor === 'decoy' && !found.length) return null;
+        if (flavor === 'board' && playing !== 0) return null;
+        // Wrong answers: weaker five-card hands sharing at least three cards with the right one (never an equal hand)
+        const id = (five) => five.cards.join(' ');
+        const worse = allFives(seven)
+          .filter((f) => P.compare(f, hand) < 0)
+          .map((f) => ({ f, shared: f.cards.filter((c) => hand.cards.includes(c)).length }))
+          .filter((x) => x.shared >= 3)
+          .sort((a, b) => b.shared - a.shared || P.compare(b.f, a.f));
+        const picks = P.shuffle(worse.slice(0, 8), random).slice(0, 3).map((x) => id(x.f));
+        if (picks.length < 3) return null;
+        options = [id(hand), ...picks].sort();
+        answer = id(hand);
+        optionKind = 'cards';
+        break;
+      }
+      case 'holeCards': {
+        if (playing == null) return null; // two equal best hands use a different number of hole cards: ambiguous
+        if (flavor === 'board' && playing !== 0) return null;
+        if (flavor === 'oneCard' && !(playing === 1 && P.evaluate5(board).category < hand.category)) return null;
+        options = ['0', '1', '2'];
+        answer = String(playing);
+        optionKind = 'holeCount';
+        break;
+      }
+      default:
+        return null;
+    }
 
     recentTargets.push(target);
     if (recentTargets.length > 2) recentTargets.shift();
 
     return {
       kind: 'recognition',
-      board: seven.slice(2),
-      players: [{ cards: seven.slice(0, 2), hand }],
+      situation,
+      flavor,
+      decoys: found,
+      board,
+      players: [{ cards: hole, hand }],
       options,
-      answer: target,
+      optionKind,
+      answer,
       winners: [0],
       split: false,
     };
@@ -373,10 +549,11 @@
     const level = Math.min(3, Math.max(1, Math.round(stage)));
     // Chosen once, so that situations that are harder to deal are not under-represented.
     const source = skillId === 'hand_comparison' ? pick(COMPARISON_SOURCES[level], random) : null;
+    const recognition = skillId === 'hand_recognition' ? recognitionPlan(level, random) : null;
 
     for (let attempt = 0; attempt < 5000; attempt++) {
       let q;
-      if (skillId === 'hand_recognition') q = recognitionQuestion(random, level);
+      if (skillId === 'hand_recognition') q = recognitionQuestion(random, level, recognition);
       else if (skillId === 'hand_comparison') {
         q = winnerQuestion(source, random, seats);
         if (q) q.situation = source;
@@ -404,5 +581,5 @@
     throw new Error(`Could not generate a question for ${skillId}`);
   }
 
-  DT.holdemSkills = { createQuestion, firstDifference, DEFINING, MS_PER_EXTRA_PLAYER, MS_PER_EXTRA_SEAT, MS_PER_EXTRA_SPOT, COMPARISON_SOURCES, CLOSE_CALL_SOURCES, SKILL_IDS: SKILLS.map((s) => s.id) };
+  DT.holdemSkills = { createQuestion, firstDifference, DEFINING, MS_PER_EXTRA_PLAYER, MS_PER_EXTRA_SEAT, MS_PER_EXTRA_SPOT, COMPARISON_SOURCES, CLOSE_CALL_SOURCES, RECOGNITION_TYPES, decoys, holeCardsPlaying, allFives, SKILL_IDS: SKILLS.map((s) => s.id) };
 })(window.DT);
