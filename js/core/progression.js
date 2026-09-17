@@ -118,11 +118,10 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Skill list filter (module page): presentation only — no statistic is touched
+  // Skill list filter by level — one system for every learning path (Hold'em, Blackjack).
+  // Presentation only: no statistic is touched.
   // ---------------------------------------------------------------------------
 
-  /** Modules whose skill list can be filtered by level. */
-  const FILTERED_PATHS = ['holdem'];
   const ALL_LEVELS = 'all';
 
   /** The filters offered: every level of the path, then "all". */
@@ -531,7 +530,6 @@
     nextSkill,
     mistakesBySkill,
     sessionPlan,
-    FILTERED_PATHS,
     ALL_LEVELS,
     skillFilters,
     defaultSkillFilter,

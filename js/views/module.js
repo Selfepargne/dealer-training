@@ -81,8 +81,7 @@
   function skillsPanel(moduleId, data) {
     const t = DT.i18n.t;
     const path = progression.PATHS[moduleId];
-    const filtered = progression.FILTERED_PATHS.includes(moduleId);
-    const filter = filtered ? progression.skillFilter(data, moduleId) : progression.ALL_LEVELS;
+    const filter = progression.skillFilter(data, moduleId);
     const single = filter !== progression.ALL_LEVELS;
 
     const levels = progression.skillsByLevel(data, moduleId, filter).map(({ level, skills }) => {
@@ -98,10 +97,9 @@
 
     return Panel(
       { className: 'skills-panel', eyebrow: t('skills.eyebrow'), title: t('skills.title'), description: t('skills.desc', { n: path.MASTERY.exercises }) },
-      filtered && levelTabs(moduleId, data, filter),
-      filtered
-        ? h('div', { class: 'level-panel', id: 'level-panel', role: 'tabpanel', 'aria-labelledby': `level-tab-${filter}` }, levels)
-        : levels);
+      levelTabs(moduleId, data, filter),
+      // Only the chosen level is rendered: the other levels are not in the page at all.
+      h('div', { class: 'level-panel', id: 'level-panel', role: 'tabpanel', 'aria-labelledby': `level-tab-${filter}` }, levels));
   }
 
   /** The four session types: path (with Practice / Speed), a chosen skill (the cards), my mistakes, challenge. */

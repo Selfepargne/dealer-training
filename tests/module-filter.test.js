@@ -171,11 +171,30 @@ test('French and English: tab labels', () => {
   equal(tabs(render()).map((t) => text(all(t, hasClass('level-tab__name'))[0])), ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Show all'], 'EN');
 });
 
-test('Blackjack page unchanged: no tabs, every level listed', () => {
+test('Same selector on the Blackjack page: one shared filter system, remembered per module', () => {
   startWith(null);
-  const page = window.DT.views.module.render({ params: { id: 'blackjack' }, data: window.DT.core.state.get() });
-  equal(tabs(page).length, 0, 'no tabs');
-  equal(all(page, hasClass('skill-level')).length, 4, 'four levels');
+  const renderBj = () => window.DT.views.module.render({ params: { id: 'blackjack' }, data: window.DT.core.state.get() });
+  const BJ = window.DT.data.blackjackSkills.SKILLS;
+  equal(tabs(renderBj()).map((t) => t.props.dataset.filter), ['beginner', 'intermediate', 'advanced', 'expert', 'all'], 'tabs');
+  equal(activeTab(renderBj()), 'beginner', 'default level');
+  equal(all(renderBj(), hasClass('skill-level')).length, 1, 'a single level rendered');
+  for (const level of ['beginner', 'intermediate', 'advanced', 'expert', 'all']) {
+    click(renderBj(), level);
+    const page = renderBj();
+    equal(activeTab(page), level, 'active tab');
+    equal(all(page, hasClass('skill-card')).length, BJ.filter((s) => level === 'all' || s.level === level).length, `${level} cards`);
+    equal(all(page, hasClass('skill-level')).length, level === 'all' ? 4 : 1, `${level} levels rendered`);
+  }
+  click(renderBj(), 'expert');
+  equal(JSON.parse(memory[KEY]).settings.skillFilters, { blackjack: 'expert' }, 'saved for Blackjack only');
+  equal(activeTab(render()), 'beginner', "Hold'em keeps its own choice");
+});
+
+test('Unselected levels are removed from the page, not hidden', () => {
+  startWith(null);
+  const page = render();
+  equal(all(page, hasClass('skill-level')).length, 1, 'one level section');
+  assert(!all(page, (n) => n.props.hidden || /display:s*none/.test(n.props.style || '')).length, 'nothing hidden');
 });
 
 const failed = results.filter((r) => !r.ok);
