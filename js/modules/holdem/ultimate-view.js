@@ -1,7 +1,8 @@
 /*
   Display and wording of the Ultimate Texas Hold'em settlements (question kind 'ultimate', see ultimate.js).
-  A casino Ultimate table: the dealer and the board at the top, one betting layout per player below —
-  TRIPS on top, ANTE = BLIND side by side, PLAY underneath — with the chips on each spot.
+  The shared dealer's view (DT.components.DealerPov, rows layout on a half-moon table): the dealer, the dealer's hand
+  and the rack at the bottom, the board in the middle, the players along the far curve — one betting layout each:
+  TRIPS on top, ANTE = BLIND side by side, PLAY underneath, with the chips on each spot.
   Used by holdem.js.
 */
 (function (DT) {
@@ -10,7 +11,18 @@
   const { h } = DT.core.dom;
   const { Card } = DT.components;
   const U = DT.holdemUltimate;
+  const { DealerPov } = DT.components;
   const { stacks } = DT.holdemDealerView;
+
+  /**
+   * Where a player sits on the curve of an Ultimate table, in the dealer's view: player 1 on the dealer's left,
+   * spread across the far side. Presentation only (DealerPov.place turns the angle into coordinates).
+   */
+  function spotPlace(count, i) {
+    const spread = 80;
+    const step = count > 1 ? spread / (count - 1) : 0;
+    return DealerPov.place(180 + (i - (count - 1) / 2) * step);
+  }
 
   const t = (key, vars) => DT.i18n.t(key, vars);
   const money = (amount) => t('dealer.money', { amount });
@@ -46,7 +58,7 @@
   function spot(q, i) {
     const s = q.spots[i];
     const several = q.spots.length > 1;
-    return h('div', { class: `uth-spot${several && i === q.target ? ' is-target' : ''}`, dataset: { player: i } },
+    return h('div', { class: `uth-spot${several && i === q.target ? ' is-target' : ''}`, dataset: { player: i }, style: spotPlace(q.spots.length, i) },
       h('div', { class: 'uth-spot__head' },
         h('span', { class: 'uth-spot__name' }, playerName(i)),
         h('span', { class: `uth-tag uth-tag--${s.settlement.result}` }, t(`ultimate.results.${s.settlement.result}`))),
@@ -63,11 +75,10 @@
       h('p', { class: 'uth-spot__total num', 'aria-live': 'polite' }));
   }
 
-  /** The dealer's hand. "Does the dealer qualify?": the hand name and the badge come with the answer. */
+  /** The dealer's hand, in front of the dealer. "Does the dealer qualify?": the hand name and the badge come with the answer. */
   function dealer(q) {
     const hidden = q.hideQualification;
     return h('div', { class: 'uth-dealer' },
-      h('span', { class: 'uth-dealer__label' }, t('ultimate.dealer')),
       h('div', { class: 'uth-hand' },
         h('div', { class: 'card-row' }, q.dealer.cards.map((code) => Card({ code, size: 'sm' }))),
         h('span', { class: 'uth-hand__name uth-dealer__hand' }, hidden ? '' : handName(q.dealer.hand))),
@@ -120,15 +131,18 @@
 
   function view(q) {
     return {
-      stage: h('div', { class: 'uth-table', dataset: { players: q.spots.length, situation: q.situation } },
-        h('div', { class: 'uth-felt' },
-          h('div', { class: 'uth-felt__top' },
-            dealer(q),
-            h('div', { class: 'uth-board', role: 'group', 'aria-label': t('holdem.board') },
-              h('span', { class: 'uth-dealer__label' }, t('holdem.board')),
-              h('div', { class: 'card-row' }, q.board.map((code) => Card({ code, size: 'sm' }))))),
-          h('div', { class: 'uth-spots' }, q.spots.map((s, i) => spot(q, i)))),
-        q.paytable && paytables(q.paytable)),
+      stage: DealerPov.scene({
+        className: 'uth-table',
+        dataset: { players: q.spots.length, situation: q.situation },
+        layout: 'rows',
+        shape: 'halfmoon',
+        centre: h('div', { class: 'uth-board', role: 'group', 'aria-label': t('holdem.board') },
+          h('span', { class: 'uth-dealer__label' }, t('holdem.board')),
+          h('div', { class: 'card-row' }, q.board.map((code) => Card({ code, size: 'sm' })))),
+        seats: q.spots.map((s, i) => spot(q, i)),
+        dealer: dealer(q),
+        below: q.paytable && paytables(q.paytable),
+      }),
       prompt: prompt(q),
       options: q.options.map((id) => ({ id, label: optionLabel(q, id) })),
     };

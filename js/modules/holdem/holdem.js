@@ -48,14 +48,8 @@
     return min + Math.floor(random() * (max - min + 1));
   }
 
-  /** Seat positions around the table, clockwise from the top. */
-  const SEATS = {
-    2: ['top', 'bottom'],
-    3: ['top', 'right', 'left'],
-    4: ['top', 'right', 'bottom', 'left'],
-    5: ['top', 'top-right', 'bottom-right', 'bottom-left', 'top-left'],
-    6: ['top', 'top-right', 'bottom-right', 'bottom', 'bottom-left', 'top-left'],
-  };
+  /** Where a player sits in the dealer's view: the angle comes from the table layout shared by every Hold'em table. */
+  const seatPlace = (count, i) => DT.components.DealerPov.place(DT.holdemDealer.tableLayout(count).seats[i]);
 
   // ---------------------------------------------------------------------------
   // Wording
@@ -119,8 +113,8 @@
     return el;
   }
 
-  function seat(q, i, position, label) {
-    return h('div', { class: 'seat', dataset: { player: i, pos: position } },
+  function seat(q, i, label) {
+    return h('div', { class: 'seat pov-seat', dataset: { player: i }, style: seatPlace(q.players.length, i) },
       h('div', { class: 'seat__head' },
         h('span', { class: 'seat__label' }, label),
         h('span', { class: 'seat__status' })),
@@ -128,17 +122,27 @@
       h('p', { class: 'seat__hand', 'aria-live': 'polite' }));
   }
 
-  /** The board is the centre: flop, turn, river — five cards, clear hierarchy. */
-  function felt(q) {
+  /** The board in front of the dealer: flop, turn, river — laid on the felt, still perfectly readable. */
+  function board(q) {
     const street = (name, cards, from) =>
       h('div', { class: `street street--${name}` },
         h('span', { class: 'street__label' }, t(`holdem.streets.${name}`)),
         h('div', { class: 'card-row' }, cards.map((code, k) => dealt(code, from + k))));
-    return h('div', { class: 'felt' },
-      h('div', { class: 'board', role: 'group', 'aria-label': t('holdem.board') },
-        street('flop', q.board.slice(0, 3), 0),
-        street('turn', q.board.slice(3, 4), 3),
-        street('river', q.board.slice(4, 5), 4)));
+    return h('div', { class: 'board pov-board', role: 'group', 'aria-label': t('holdem.board') },
+      street('flop', q.board.slice(0, 3), 0),
+      street('turn', q.board.slice(3, 4), 3),
+      street('river', q.board.slice(4, 5), 4));
+  }
+
+  /** The showdown table in the dealer's view (shared DealerPov scene): the players around, the board in front of the dealer. */
+  function povTable(q, seats, className) {
+    return DT.components.DealerPov.scene({
+      className: `holdem-pov ${className}`,
+      dataset: { players: q.players.length },
+      centre: board(q),
+      seats,
+      stack: false, // the places are small: the ring stays readable on a phone
+    });
   }
 
   function view(q) {
@@ -146,7 +150,7 @@
     if (q.kind === 'ultimate') return ultimateView.view(q);
     if (q.kind === 'recognition') {
       return {
-        stage: h('div', { class: 'holdem table--solo' }, felt(q), seat(q, 0, 'bottom', t('holdem.hole'))),
+        stage: povTable(q, [seat(q, 0, t('holdem.hole'))], 'table--solo'),
         prompt: t(q.situation === 'bestFive' || q.situation === 'holeCards' ? `exercises.holdem.${q.situation}` : 'exercises.holdem.recognition'),
         options: q.options.map((id) => ({ id, label: recognitionLabel(q, id) })),
       };
@@ -154,9 +158,7 @@
 
     const count = q.players.length;
     return {
-      stage: h('div', { class: `holdem table--${count}` },
-        felt(q),
-        q.players.map((p, i) => seat(q, i, SEATS[count][i], playerName(i)))),
+      stage: povTable(q, q.players.map((p, i) => seat(q, i, playerName(i))), `table--${count}`),
       prompt: t('exercises.holdem.question'),
       options: [
         ...q.players.map((p, i) => ({ id: String(i), label: playerName(i) })),

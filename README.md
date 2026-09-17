@@ -13,6 +13,7 @@ La progression est enregistrée dans le navigateur (`localStorage`). Réglages �
 node tests/poker.test.js             moteur Texas Hold'em (~15 s)
 node tests/holdem-skills.test.js     20 compétences Hold'em : questions valides et bien catégorisées
 node tests/dealer.test.js            débutant croupier : bouton, blindes, ordres, déroulement, jetons et mises
+node tests/dealer-pov.test.js        vue croupier : table partagée, places, bouton, mises, pot
 node tests/ultimate.test.js          Ultimate Texas Hold'em : barèmes BLIND / TRIPS, qualification, règlement, 4 niveaux
 node tests/blackjack-engine.test.js  moteur Blackjack (toutes les mains jusqu'à 5 cartes)
 node tests/blackjack-skills.test.js  compétences Blackjack jouables : questions valides
@@ -45,6 +46,7 @@ js/modules/holdem/         moteur poker (engine.js), générateurs par compéten
 js/modules/blackjack/      moteur blackjack (engine.js : règles de table), générateurs (skills.js), écran (blackjack.js)
 js/views/                  un fichier par écran (session.js = écran d'exercice commun)
 js/components/             éléments réutilisés (carte, jeton, badge de grade, bouton…)
+js/components/DealerPov.js vue croupier : la table partagée par tous les exercices (croupier en bas, joueurs autour)
 ```
 
 ## Modifier quelque chose de courant
@@ -55,6 +57,7 @@ js/components/             éléments réutilisés (carte, jeton, badge de grade
 - **Le nombre de questions par session** : `SESSION_LENGTH` dans `js/core/progression.js`.
 - **Le temps cible d'une compétence ou la règle de maîtrise** : `js/data/holdem-skills.js` ou `js/data/blackjack-skills.js`.
 - **Taille de table Hold'em** : choix « Auto / 2–6 » sur l'écran de départ ; en Auto, la table grandit avec le niveau (`AUTO_PLAYERS` dans `js/modules/holdem/holdem.js`). Le temps cible augmente de 0,7 s par joueur au-delà de 2.
+- **La table (vue croupier)** : `js/components/DealerPov.js` et `css/dealer-pov.css` — croupier en bas, table en perspective, joueurs autour, board au centre. Les exercices n'y injectent que leur contenu et règlent leur géométrie (`--cy`, `--rx`, `--ry`, `--rail-*`, `--bet-*`) dans `css/dealer-table.css`, `css/holdem.css` ou `css/ultimate-table.css`.
 - **Règle d'abattage (qui montre en premier)** : `showdownOrder` dans `js/data/house-rules.js` — `'lastAggressor'` (par défaut : dernier à miser ou relancer sur la river, sinon premier joueur actif à gauche du bouton) ou `'leftOfButton'` (toujours le premier joueur actif à gauche du bouton). Ce n'est pas une règle universelle : questions et explications la présentent comme la règle de la table.
 - **Ouvrir la phase B ou C du Blackjack** (une fois ses générateurs écrits) : `AVAILABLE_PHASES` dans `js/data/blackjack-skills.js`.
 

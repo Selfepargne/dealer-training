@@ -10,13 +10,13 @@
 global.window = { DT: { translations: {}, core: {}, data: {}, components: {}, exercises: {}, views: {} } };
 global.navigator = { language: 'fr-FR' };
 global.document = { documentElement: {} };
-window.DT.core.dom = { h: () => ({ classList: { add() {} } }) };
+window.DT.core.dom = { h: () => ({ classList: { add() {} }, style: { setProperty() {}, getPropertyValue: () => '' } }) };
 window.DT.components.Card = () => null;
 window.DT.components.Chip = () => null;
 
 for (const f of [
   '../js/i18n/en.js', '../js/i18n/fr.js', '../js/core/i18n.js', '../js/core/format.js', '../js/data/holdem-skills.js',
-  '../js/modules/holdem/engine.js', '../js/modules/holdem/dealer.js', '../js/modules/holdem/ultimate.js', '../js/modules/holdem/skills.js',
+  '../js/components/DealerPov.js', '../js/modules/holdem/engine.js', '../js/modules/holdem/dealer.js', '../js/modules/holdem/ultimate.js', '../js/modules/holdem/skills.js',
   '../js/modules/holdem/dealer-view.js', '../js/modules/holdem/ultimate-view.js', '../js/modules/holdem/holdem.js',
 ]) require(f);
 

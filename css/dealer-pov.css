@@ -1,0 +1,204 @@
+/* ==========================================================================
+   Dealer's view — the shared visual grammar of every table exercise (js/components/DealerPov.js)
+   The student sits in the dealer's seat:
+       far players · centre of the table (board, pot) · near players · edge of the table · the dealer and the rack
+   The table is tilted away over the dealer's shoulder; cards, chips and names stay flat and readable.
+   Exercises set the geometry below and style their own pieces; they never draw another table.
+
+   Places (ring layout) come from --px / --py (DealerPov.place):
+     --cy · --rx · --ry          centre and radii of the players' places, in % of the scene
+     --rail-cy · --rail-rx · --rail-ry   the edge of the felt (dealer button)
+     --bet-cy · --bet-rx · --bet-ry      the bets in front of the players, on the felt
+     --centre-y                  the centre of the table (board, pot)
+   ========================================================================== */
+
+.pov {
+  --scene-ratio: 16 / 9;
+  --table-inset: 3% 1% 7%; /* the table inside the scene: room left around it for the players' places */
+  --tilt: 34deg;
+  --centre-tilt: 14deg;
+  --cy: 47%;
+  --rx: 41%;
+  --ry: 34%;
+  --centre-y: 52%;
+  --rail-cy: 50%;
+  --rail-rx: 36%;
+  --rail-ry: 33%;
+  --bet-cy: 50%;
+  --bet-rx: 25%;
+  --bet-ry: 22%;
+
+  --felt-light: #16301f;
+  --felt-dark: #0a1611;
+  --rail: #1b1410;
+  --rail-edge: #2a1f18;
+  --rail-line: rgba(194, 162, 122, 0.42);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.pov-scene { position: relative; aspect-ratio: var(--scene-ratio); }
+
+/* ---- The table: dark wooden rail, deep green felt, one thin champagne line — tilted away from the dealer ---- */
+
+.pov-table {
+  position: absolute;
+  inset: var(--table-inset);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 30%, var(--rail-edge) 0%, var(--rail) 70%);
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.9), inset 0 0 0 1px rgba(0, 0, 0, 0.8);
+  transform: perspective(1600px) rotateX(var(--tilt));
+  transform-origin: 50% 75%;
+}
+.pov-felt {
+  position: absolute;
+  inset: 4.5% 3%;
+  border-radius: 50%;
+  border: 1px solid var(--rail-line);
+  background: radial-gradient(ellipse at 50% 60%, var(--felt-light) 0%, var(--felt-dark) 80%);
+  box-shadow: inset 0 0 70px 18px rgba(0, 0, 0, 0.45);
+}
+/* A table with the dealer on the straight side (Ultimate): the players around the curve, far from the dealer */
+.pov--halfmoon .pov-table,
+.pov--halfmoon .pov-felt { border-radius: 50% 50% 18px 18px / 88% 88% 18px 18px; }
+
+/* ---- The centre of the table: in front of the dealer, laid on the felt ---- */
+
+.pov--ring .pov-centre {
+  position: absolute;
+  left: 50%;
+  top: var(--centre-y);
+  z-index: 1;
+  transform: translate(-50%, -50%) perspective(900px) rotateX(var(--centre-tilt));
+}
+
+/* ---- Around the table: players, dealer button, bets. Slightly smaller on the far side. ---- */
+
+.pov .pov-seat,
+.pov .pov-on-rail,
+.pov .pov-on-bets {
+  --depth: calc((var(--py) + 1) / 2); /* 0 far side … 1 dealer's side */
+  position: absolute;
+  transform: translate(-50%, -50%) scale(calc(0.9 + 0.1 * var(--depth)));
+}
+.pov .pov-seat {
+  z-index: 2;
+  left: calc(50% + var(--px) * var(--rx) * (0.9 + 0.1 * var(--depth)));
+  top: calc(var(--cy) + var(--py) * var(--ry));
+}
+.pov .pov-on-rail {
+  z-index: 3;
+  left: calc(50% + var(--px) * var(--rail-rx) * (0.9 + 0.1 * var(--depth)));
+  top: calc(var(--rail-cy) + var(--py) * var(--rail-ry));
+}
+.pov .pov-on-bets {
+  z-index: 1;
+  left: calc(50% + var(--px) * var(--bet-rx) * (0.9 + 0.1 * var(--depth)));
+  top: calc(var(--bet-cy) + var(--py) * var(--bet-ry));
+}
+
+/* ---- The dealer's place: the chip rack at the edge of the table, a discreet label ---- */
+
+.pov--ring .pov-dealer {
+  position: absolute;
+  left: 50%;
+  bottom: -1%; /* the rack sits at the very edge of the table, clear of the dealer button */
+  z-index: 1;
+  transform: translateX(-50%);
+}
+/* What lies in front of the dealer (the pot) sits beside the rack: the dealer's place stays low, clear of the felt */
+.pov-dealer { display: flex; align-items: center; justify-content: center; gap: var(--s-3); }
+.pov-dealer__place { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.pov-rack {
+  display: flex;
+  gap: 5px;
+  padding: 6px 10px;
+  border: 1px solid rgba(194, 162, 122, 0.28);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #211813 0%, #120d0a 100%);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+.pov-rack__tube {
+  width: 30px;
+  height: 16px;
+  border-radius: 8px / 50%;
+  background: repeating-linear-gradient(90deg, var(--c) 0 5px, var(--e) 5px 6px);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  opacity: 0.9;
+}
+.pov-dealer__label { font-size: 0.5625rem; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: var(--text-3); }
+
+/* ---- Rows layout: the players on the far side, the centre, the dealer — for tables where places are large ---- */
+
+.pov--rows .pov-scene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-5);
+  aspect-ratio: auto;
+  padding: var(--s-6) var(--s-5) var(--s-3);
+}
+.pov--rows .pov-table { inset: 0 0 4%; }
+.pov--rows .pov-players,
+.pov--rows .pov-centre,
+.pov--rows .pov-dealer { position: relative; z-index: 1; }
+.pov--rows .pov-centre { transform: perspective(900px) rotateX(var(--centre-tilt)); }
+/* The far side is a curve: the players at the ends sit a little closer to the dealer */
+.pov-players { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: var(--s-4); }
+.pov--rows .pov-players > * { transform: translateY(calc((var(--py, -1) + 1) * 55px)); }
+
+/* ---- Tablet: the perspective stays, the decoration gets lighter ---- */
+
+@media (max-width: 900px) {
+  .pov { --tilt: 26deg; }
+  .pov-rack__tube { width: 24px; height: 13px; }
+  .pov--rows .pov-scene { gap: var(--s-4); padding: var(--s-5) var(--s-3) var(--s-2); }
+}
+
+/* ---- Stacked composition (phones, ring exercises): far players · centre · near players · dealer ---- */
+
+.pov--stacked .pov-scene {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--s-2) var(--s-2);
+  aspect-ratio: auto;
+  padding: var(--s-4) var(--s-2) var(--s-3);
+}
+.pov--stacked .pov-table { inset: 0 0 5%; }
+.pov--stacked .pov-seat,
+.pov--stacked .pov-centre,
+.pov--stacked .pov-dealer {
+  position: relative;
+  left: auto;
+  top: auto;
+  transform: none;
+  order: var(--row);
+  z-index: 1;
+}
+.pov--stacked .pov-centre { flex: 1 0 100%; display: flex; justify-content: center; transform: perspective(700px) rotateX(var(--centre-tilt)); }
+.pov--stacked .pov-dealer { flex: 1 0 100%; }
+.pov--stacked .pov-on-rail, .pov--stacked .pov-on-bets { display: none; }
+
+/* ---- Phone: little depth, readable pieces first ---- */
+
+@media (max-width: 600px) {
+  .pov { --tilt: 12deg; --centre-tilt: 10deg; gap: var(--s-2); }
+  .pov { --table-inset: 4% 0 8%; }
+  .pov-felt { inset: 3.5% 4%; box-shadow: inset 0 0 40px 10px rgba(0, 0, 0, 0.45); }
+  .pov-rack { gap: 3px; padding: 4px 6px; }
+  .pov-rack__tube { width: 18px; height: 10px; }
+  .pov-dealer__label { font-size: 0.5rem; }
+  .pov--rows .pov-scene { gap: var(--s-3); padding: var(--s-3) var(--s-2) var(--s-2); }
+  .pov--rows .pov-table { inset: 0; }
+  /* A phone keeps the shape of the table, with a shallower curve so the places stay on the felt */
+  .pov--halfmoon .pov-table,
+  .pov--halfmoon .pov-felt { border-radius: 26px 26px 16px 16px / 54px 54px 16px 16px; }
+  .pov--rows .pov-players > * { transform: none; }
+}

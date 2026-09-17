@@ -1,10 +1,15 @@
 /* ==========================================================================
    Ultimate Texas Hold'em table — settling the bets (ultimate-view.js)
-   The dealer and the board along the straight edge, the players' layouts on the curve:
-   TRIPS on top, ANTE = BLIND side by side, PLAY underneath. Every class starts with uth-.
+   The table is the shared dealer's view (css/dealer-pov.css, rows layout on a half-moon table):
+   the dealer, the dealer's hand and the rack at the bottom, the board in the middle, the players along the far curve.
+   This file sets the geometry of the exercise and styles its pieces. Every class starts with uth-.
    ========================================================================== */
 
 .uth-table {
+  --scene-ratio: auto;
+  --table-inset: 0 0 4%;
+  --tilt: 26deg;
+  --centre-tilt: 12deg;
   --disc-w: 30px;
   --disc-h: 9px;
   --uth-card: 34px;
@@ -20,21 +25,12 @@
   margin: 0 auto;
 }
 
-/* Half-moon felt: straight edge on the dealer's side, the curve on the players' side */
-.uth-felt {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-5);
-  padding: var(--s-5) var(--s-5) var(--s-7);
-  border: 1px solid var(--uth-line);
-  border-radius: 18px 18px 50% 50% / 18px 18px 110px 110px;
-  background: radial-gradient(ellipse at 50% 30%, var(--felt-light) 0%, var(--felt-dark) 80%);
-  box-shadow: 0 0 0 8px #070807, 0 0 0 9px rgba(0, 0, 0, 0.9), inset 0 0 50px 10px rgba(0, 0, 0, 0.4);
-}
 .uth-table .pcard { --w: var(--uth-card); }
 .uth-table .card-row { gap: 4px; flex-wrap: nowrap; }
 
-.uth-felt__top { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: var(--s-4) var(--s-6); }
+/* The players along the curve: the middle of the arc is the farthest from the dealer */
+.uth-table .pov-players { gap: var(--s-4) var(--s-5); align-items: flex-end; }
+.uth-table .pov-dealer { gap: var(--s-5); }
 .uth-dealer, .uth-board { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .uth-dealer__label {
   font-size: 0.625rem;
@@ -67,7 +63,6 @@
 
 /* ---- Players' layouts --------------------------------------------------------- */
 
-.uth-spots { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-4); }
 .uth-spot {
   display: flex;
   flex-direction: column;
@@ -137,9 +132,8 @@
 
 @media (max-width: 600px) {
   .uth-table { --uth-card: 28px; --disc-w: 24px; --disc-h: 7px; }
-  .uth-felt { gap: var(--s-4); padding: var(--s-4) var(--s-2) var(--s-6); border-radius: 14px 14px 50% 50% / 14px 14px 60px 60px; }
-  .uth-felt__top { gap: var(--s-3) var(--s-4); }
-  .uth-spots { gap: var(--s-2); }
+  .uth-table .pov-players { gap: var(--s-2); }
+  .uth-table { --table-inset: 0; --tilt: 14deg; }
   .uth-spot { padding: var(--s-2) 4px; }
   /* Two or three players: two layouts per line */
   .uth-table:not([data-players="1"]) .uth-spot { flex: 0 1 calc(50% - var(--s-2)); }

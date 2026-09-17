@@ -1,14 +1,16 @@
 /*
   Display and wording of the dealer situations (table setup, flow of a hand, chips and bets).
-  An oval table: the dealer at the top middle, the players clockwise from the dealer's left,
-  the dealer button on the gold line, the bets on the felt in front of each player.
-  Used by holdem.js for the question kinds 'table', 'flow' and 'chips'.
+  The table is the shared dealer's view (DT.components.DealerPov): the dealer at the bottom, the players around the table
+  clockwise from the dealer's left, the dealer button on the edge of the felt, the bets on the felt in front of each player.
+  Every place comes from the table layout of dealer.js (tableLayout). Used by holdem.js for 'table', 'flow' and 'chips'.
 */
 (function (DT) {
   'use strict';
 
   const { h } = DT.core.dom;
-  const { Card, Chip } = DT.components;
+  const { Card, Chip, DealerPov } = DT.components;
+  /** Phones: the bet goes into the player's place and the dealer button becomes a badge on its owner (see DealerPov.compact). */
+  const inPlaceBets = (q) => q.kind === 'flow' || DealerPov.compact();
   const D = DT.holdemDealer;
 
   const t = (key, vars) => DT.i18n.t(key, vars);
@@ -32,17 +34,12 @@
         (showValues === 'always' || (showValues && !small)) && h('span', { class: 'pile__value', 'aria-hidden': 'true' }, s.value))));
   }
 
-  /** Position on an ellipse around the centre of the table: CSS turns sin/cos into left/top with its own radii. */
-  function at(angle) {
-    const r = (angle * Math.PI) / 180;
-    return { '--sin': Math.sin(r).toFixed(4), '--cos': Math.cos(r).toFixed(4) };
-  }
-
   /** SB / BB under a player: only while the blinds are engaged on the felt (see blindsShown in dealer.js). */
   function blindTags(q, i) {
-    if (!D.blindsShown(q)) return [];
-    const pos = D.positions(q.seats.length, q.button);
     const tags = [];
+    if (DealerPov.compact() && !q.hideButton && q.button === i) tags.push(h('span', { class: 'tag tag--button' }, t('dealer.markers.button')));
+    if (!D.blindsShown(q)) return tags;
+    const pos = D.positions(q.seats.length, q.button);
     if (pos.sb === i) tags.push(h('span', { class: 'tag tag--blind' }, t('dealer.markers.sb')));
     if (pos.bb === i) tags.push(h('span', { class: 'tag tag--blind' }, t('dealer.markers.bb')));
     return tags;
@@ -58,10 +55,10 @@
       : s.cards === 'down' ? [Card({ code: 'As', faceDown: true, size: 'sm' }), Card({ code: 'As', faceDown: true, size: 'sm' })] : [];
 
     return h('div', {
-      // Upper half of the table: the cave goes on the outer side of the place, away from the felt and the bets.
-      class: `seat seat--dealer on-ring${Math.cos((angle * Math.PI) / 180) > 0.2 ? ' seat--upper' : ''}${s.folded ? ' is-folded' : ''}${s.marked ? ' is-winner' : ''}`,
+      // Far side of the table: the cave goes on the outer side of the place, away from the felt and the bets.
+      class: `seat seat--dealer pov-seat${DealerPov.side(angle) === 'far' ? ' seat--far' : ''}${s.folded ? ' is-folded' : ''}${s.marked ? ' is-winner' : ''}`,
       dataset: { player: i },
-      style: at(angle),
+      style: DealerPov.place(angle),
     },
     h('span', { class: 'seat__label' }, playerName(i)),
     h('div', { class: 'seat__tags' },
@@ -69,7 +66,8 @@
       h('span', { class: `tag tag--status seat__status${s.folded ? ' tag--folded' : ''}` }, status)),
     cards.length > 0 && h('div', { class: 'card-row seat__cards' }, cards),
     cave(q, i),
-    q.kind !== 'chips' && betSpot(q, i, 'in-seat'));
+    // Flow of a hand (and every exercise on a phone): the bet stays in the player's place, the felt keeps the board
+    inPlaceBets(q) && betSpot(q, i));
   }
 
   /**
@@ -93,14 +91,14 @@
   }
 
   /**
-   * ENGAGED — the chips a player has put in this round: on the felt, in front of the player.
-   * Chips & bets: 'on-felt', on an inner oval of the felt, measured to stay clear of the pot.
-   * Flow of a hand: 'in-seat', pushed from the player towards the centre (inside the player's box on phones, the board takes the felt).
+   * ENGAGED — the chips a player has put in this round: on the felt, in front of the player,
+   * on an inner oval of the felt (DealerPov pov-on-bets) measured to stay clear of the pot, of the places and of each other.
    */
-  function betSpot(q, i, where, angle) {
+  function betSpot(q, i, angle) {
     const s = q.seats[i];
     if (!s.chip && !(s.betStacks && s.betStacks.length)) return null;
-    return h('div', { class: `bet-spot bet-spot--${where}${where === 'on-felt' ? ' on-bets' : ''}`, dataset: { player: i }, style: where === 'on-felt' ? at(angle) : null },
+    const onFelt = angle != null;
+    return h('div', { class: `bet-spot${onFelt ? ' pov-on-bets' : ' bet-spot--in-place'}`, dataset: { player: i }, style: onFelt ? DealerPov.place(angle) : null },
       s.chip && Chip({ value: s.chip, size: 'sm' }),
       s.betStacks && s.betStacks.length > 0 && stacks(s.betStacks, { showValues: q.showValues !== false }),
       h('span', { class: 'seat__amount num' }));
@@ -119,13 +117,16 @@
     }
     // Chips & bets: the stage of the hand explains where the blinds are (on the felt preflop, in the pot after).
     if (q.kind === 'chips' || (q.kind === 'table' && q.situation === 'firstActive')) parts.push(h('span', { class: 'felt__label felt__street' }, t(`dealer.streets.${q.street}`)));
-    if (q.potStacks && q.potStacks.length) {
-      parts.push(h('div', { class: 'pot' },
-        h('span', { class: 'felt__label' }, t('dealer.pot')),
-        stacks(q.potStacks, { showValues: q.showValues !== false }),
-        h('span', { class: 'pot__amount num' })));
-    }
-    return h('div', { class: 'felt-oval' }, h('div', { class: 'felt-centre' }, parts));
+    return h('div', { class: 'felt-centre' }, parts);
+  }
+
+  /** THE POT — the chips already collected: in front of the dealer, next to the rack, where the dealer keeps them. */
+  function pot(q) {
+    if (!(q.potStacks && q.potStacks.length)) return null;
+    return h('div', { class: 'pot' },
+      h('span', { class: 'felt__label' }, t('dealer.pot')),
+      stacks(q.potStacks, { showValues: q.showValues !== false }),
+      h('span', { class: 'pot__amount num' }));
   }
 
   /** Chip colours at the table: always visible under the chips exercises. */
@@ -163,27 +164,31 @@
   }
 
   /**
-   * The table: the dealer at the top middle, the players clockwise from the dealer's left,
-   * the dealer button on the gold line between two places, the bets on the felt in front of each player.
+   * The table in the dealer's view: the dealer at the bottom, the players clockwise from the dealer's left,
+   * the dealer button on the edge of the felt between two places, the bets on the felt in front of each player.
    */
   function view(q) {
     const n = q.seats.length;
     const layout = D.tableLayout(n, q.button);
     return {
-      stage: h('div', { class: `dealer-table dealer-table--${q.kind}`, dataset: { players: n } },
-        h('div', { class: 'dealer-table__surface' },
-          centre(q),
-          h('div', { class: 'place place--dealer on-ring', style: at(layout.dealer) }, h('span', { class: 'place__label' }, t('dealer.dealerSeat'))),
-          q.kind === 'chips' && q.seats.map((s, i) => betSpot(q, i, 'on-felt', layout.seats[i])),
-          q.seats.map((s, i) => seat(q, i, layout.seats[i])),
+      stage: DealerPov.scene({
+        className: `dealer-table dealer-table--${q.kind}`,
+        dataset: { players: n },
+        centre: centre(q),
+        layers: [
+          !inPlaceBets(q) && q.seats.map((s, i) => betSpot(q, i, layout.seats[i])),
           // "Where is the button?": hidden, the posted blinds give it away
-          !q.hideButton && h('div', {
-            class: 'dealer-button on-rail',
-            style: at(layout.button),
+          !q.hideButton && !DealerPov.compact() && h('div', {
+            class: 'dealer-button pov-on-rail',
+            style: DealerPov.place(layout.button),
             role: 'img',
             'aria-label': t('dealer.buttonOf', { player: playerName(q.button) }),
-          }, h('span', { 'aria-hidden': 'true' }, t('dealer.markers.button')))),
-        q.kind === 'chips' && legend(q)),
+          }, h('span', { 'aria-hidden': 'true' }, t('dealer.markers.button'))),
+        ],
+        seats: q.seats.map((s, i) => seat(q, i, layout.seats[i])),
+        dealer: pot(q),
+        below: q.kind === 'chips' && legend(q),
+      }),
       prompt: prompt(q),
       options: q.options.map((id) => ({ id, label: optionLabel(q, id) })),
     };
