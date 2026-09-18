@@ -811,7 +811,7 @@
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(180deg, rgba(6, 8, 6, 0.76) 0%, rgba(6, 8, 6, 0.24) 38%, rgba(6, 8, 6, 0.18) 60%, rgba(6, 8, 6, 0.6) 100%);
+  background: linear-gradient(180deg, rgba(6, 8, 6, 0.62) 0%, rgba(6, 8, 6, 0.12) 30%, rgba(6, 8, 6, 0) 55%, rgba(6, 8, 6, 0.38) 100%);
 }
 .tile__art--photo > .tile__art-index,
 .tile__art--photo > .badge { z-index: 2; }

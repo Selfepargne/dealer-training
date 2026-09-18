@@ -12,6 +12,8 @@
 .skill.is-soon .skill__name,
 .skill.is-soon .skill__meta { color: var(--text-3); }
 .tile.is-soon .tile__art > :last-child { opacity: 0.55; }
+/* Une photographie n'est pas éteinte mais désaturée : elle reste lisible, et « Bientôt » se comprend */
+.tile.is-soon .tile__art > .tile__photo { opacity: 1; filter: grayscale(0.7) brightness(0.8); }
 
 /* ---- Rank badge & achievement seal ----------------------------------------- */
 
@@ -171,3 +173,6 @@
 
 .challenge__heading { font-size: clamp(2rem, 1.6rem + 1.6vw, 2.75rem); }
 .daily__art--plain { margin: 0; height: auto; min-height: 180px; border: 1px solid var(--line); border-radius: var(--radius); }
+/* Le défi du jour en photographie : elle remplit le cadre, le chronomètre reste dans le champ */
+.daily__art--photo { padding: 0; }
+.daily__photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 60% 50%; }

@@ -4,7 +4,7 @@
   const { h } = DT.core.dom;
   const progression = DT.core.progression;
   const { CHALLENGES, EXAM, DAILY } = DT.data.challenges;
-  const { PageHeader, Panel, Button, Badge, ModuleArt } = DT.components;
+  const { PageHeader, Panel, Button, Badge, ModuleArt, ScenePhoto } = DT.components;
 
   function daily(data) {
     const t = DT.i18n.t;
@@ -18,7 +18,8 @@
         h('h2', { class: 'display challenge__heading' }, t('daily.format', { n: DAILY.questions, s: DAILY.timeLimitMs / 1000 })),
         h('p', { class: 'muted' }, t('daily.rules', { n: DAILY.questions, s: DAILY.timeLimitMs / 1000, xp: DAILY.xp })),
         h('div', null, Button({ label: done ? t('daily.replay') : t('daily.start'), variant: done ? 'secondary' : 'accent', size: 'lg', arrow: true, href: '#/train/daily' }))),
-      h('div', { class: 'daily__art daily__art--plain' }, ModuleArt('holdem')));
+      // La photographie du défi : cartes, jetons, chronomètre — sinon la composition dessinée
+      h('div', { class: 'daily__art daily__art--plain daily__art--photo' }, ScenePhoto('daily', 'daily__photo') || ModuleArt('holdem')));
   }
 
   function card(c) {

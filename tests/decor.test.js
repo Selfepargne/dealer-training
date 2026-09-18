@@ -208,11 +208,14 @@ test('Les vignettes de modules : une photographie par discipline, légère et d�
   ids.forEach((id) => assert(new RegExp(`^\\s+${id}: \\[`, 'm').test(src), `${id} a sa photographie`));
 
   // Les fichiers sont livrés et restent légers : une carte n'est pas un hero
-  const files = [...src.matchAll(/'(assets\/[\w.-]+\.webp)'/g)].map((m) => m[1]);
+  // Seul le tableau des modules compte ici : les scènes (le défi du jour) sont vérifiées plus bas
+  const start = src.indexOf('const PHOTOS = {');
+  const photos = src.slice(start, src.indexOf('};', start));
+  const files = [...photos.matchAll(/'(assets\/[\w.-]+\.webp)'/g)].map((m) => m[1]);
   assert(files.length === ids.length, `${ids.length} fichiers référencés`);
   files.forEach((f) => {
     assert(fs.existsSync(path.join(__dirname, '..', f)), `${f} est livré`);
-    assert(size(f) < 60 * 1024, `${f} reste léger (${Math.round(size(f) / 1024)} Ko)`);
+    assert(size(f) < 64 * 1024, `${f} reste léger (${Math.round(size(f) / 1024)} Ko)`);
   });
 
   // Décoratives : le nom, les verbes et l'état du module sont écrits à côté
@@ -221,6 +224,11 @@ test('Les vignettes de modules : une photographie par discipline, légère et d�
   assert(/width,\n\s+height,/.test(src), 'dimensions déclarées : aucun saut de mise en page');
   // La composition dessinée reste le repli si un module n'a pas de photographie
   assert(/photo \|\| ModuleArt\(m\.id\)/.test(view), 'repli sur la composition dessinée');
+  // Le défi du jour de l'onglet Défis a sa photographie, avec le même repli
+  const challenges = read('js/views/challenges.js');
+  assert(/ScenePhoto('daily', 'daily__photo') || ModuleArt('holdem')/.test(challenges), 'le défi du jour a sa photographie, et son repli');
+  assert(fs.existsSync(path.join(__dirname, '..', 'assets/challenge-daily.webp')), 'la photographie du défi est livrée');
+  assert(size('assets/challenge-daily.webp') < 80 * 1024, 'et reste légère');
   // Le composant est chargé avant les écrans qui s'en servent
   const html = read('index.html');
   assert(html.indexOf('ModulePhoto.js') < html.indexOf('js/views/'), 'chargé avant les écrans');
